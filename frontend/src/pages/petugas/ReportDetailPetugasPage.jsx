@@ -1,11 +1,11 @@
 // ============================================================
 // SIMONIK - Report Detail Petugas Page
 // File: src/pages/petugas/ReportDetailPetugasPage.jsx
-// Deskripsi: Halaman detail laporan untuk petugas + tombol aksi
+// Deskripsi: Halaman detail laporan petugas + foto + tombol aksi
 // ============================================================
 
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../../api/axios';
@@ -19,14 +19,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Mapping scope
 const SCOPE_INFO = {
   jalan: { label: 'Jalan', icon: '🛣️' },
   lampu: { label: 'Lampu Penerangan Jalan', icon: '💡' },
   drainase: { label: 'Drainase', icon: '🚰' },
 };
 
-// Mapping status
 const STATUS_INFO = {
   DIAJUKAN: { label: 'Diajukan', color: '#f39c12', bg: '#fef5e7' },
   DIVERIFIKASI: { label: 'Diverifikasi', color: '#3498db', bg: '#eaf4fb' },
@@ -35,7 +33,6 @@ const STATUS_INFO = {
   DITOLAK: { label: 'Ditolak', color: '#c0392b', bg: '#fff5f5' },
 };
 
-// Aksi per status
 const STATUS_ACTIONS = {
   DIAJUKAN: [
     {
@@ -80,12 +77,14 @@ const STATUS_ACTIONS = {
   DITOLAK: [],
 };
 
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+
 export default function ReportDetailPetugasPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [report, setReport] = useState(null);
   const [history, setHistory] = useState([]);
+  const [attachments, setAttachments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modal, setModal] = useState(null);
@@ -99,12 +98,14 @@ export default function ReportDetailPetugasPage() {
     setLoading(true);
     setError('');
     try {
-      const [reportRes, historyRes] = await Promise.all([
+      const [reportRes, historyRes, attachRes] = await Promise.all([
         api.get(`/reports/${id}`),
         api.get(`/reports/${id}/history`),
+        api.get(`/reports/${id}/attachments`),
       ]);
       setReport(reportRes.data.data.report);
       setHistory(historyRes.data.data.history);
+      setAttachments(attachRes.data.data.attachments || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal memuat detail laporan.');
     } finally {
@@ -180,7 +181,6 @@ export default function ReportDetailPetugasPage() {
 
   return (
     <div style={styles.container}>
-      {/* Back link */}
       <Link
         to="/petugas/dashboard"
         style={styles.backLink}
@@ -190,7 +190,7 @@ export default function ReportDetailPetugasPage() {
         ← Kembali ke Dashboard
       </Link>
 
-      {/* Card: Header Info */}
+      {/* Card: Header */}
       <div style={styles.card}>
         <div style={styles.cardHeader}>
           <div style={styles.scopeBadge}>
@@ -210,7 +210,6 @@ export default function ReportDetailPetugasPage() {
 
         <h1 style={styles.title}>{report.title}</h1>
         <p style={styles.meta}>🕐 Dibuat {formatRelativeTime(report.created_at)}</p>
-
         {report.user_name && (
           <p style={styles.pelapor}>
             👤 Dilaporkan oleh <strong>{report.user_name}</strong>
@@ -223,6 +222,34 @@ export default function ReportDetailPetugasPage() {
         <h2 style={styles.sectionTitle}>Deskripsi</h2>
         <p style={styles.description}>{report.description}</p>
       </div>
+
+      {/* Card: Foto */}
+      {attachments.length > 0 && (
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>Foto ({attachments.length})</h2>
+          <div style={styles.photoGrid}>
+            {attachments.map((att) => (
+              <a
+                key={att.id}
+                href={`${API_BASE}${att.file_url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={styles.photoItem}
+              >
+                <img
+                  src={`${API_BASE}${att.file_url}`}
+                  alt="Foto laporan"
+                  style={styles.photoImg}
+                  loading="lazy"
+                />
+                <span style={styles.photoType}>
+                  {att.type === 'bukti' ? '✓ Bukti' : '📷 Laporan'}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Card: Lokasi */}
       <div style={styles.card}>
@@ -343,7 +370,9 @@ export default function ReportDetailPetugasPage() {
               </label>
               <textarea
                 value={modal.note}
-                onChange={(e) => setModal({ ...modal, note: e.target.value, error: '' })}
+                onChange={(e) =>
+                  setModal({ ...modal, note: e.target.value, error: '' })
+                }
                 placeholder={modal.action.notePlaceholder}
                 rows={3}
                 style={styles.modalTextarea}
@@ -398,8 +427,6 @@ const styles = {
     fontWeight: 600,
     transition: 'color 0.2s ease',
   },
-
-  // ===== CARD =====
   card: {
     background: '#fff',
     border: '1px solid #e5e5e5',
@@ -414,8 +441,6 @@ const styles = {
     alignItems: 'center',
     marginBottom: '12px',
   },
-
-  // Header info
   scopeBadge: {
     display: 'flex',
     alignItems: 'center',
@@ -445,13 +470,7 @@ const styles = {
     fontSize: '13px',
     fontStyle: 'italic',
   },
-  pelapor: {
-    margin: '0',
-    color: '#666',
-    fontSize: '13px',
-  },
-
-  // Section title di dalam card
+  pelapor: { margin: 0, color: '#666', fontSize: '13px' },
   sectionTitle: {
     margin: '0 0 12px',
     color: '#0b3d6b',
@@ -478,12 +497,39 @@ const styles = {
     overflow: 'hidden',
     border: '1px solid #e5e5e5',
   },
-  map: {
-    height: '100%',
-    width: '100%',
+  map: { height: '100%', width: '100%' },
+  // Foto
+  photoGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+    gap: '10px',
   },
-
-  // States
+  photoItem: {
+    position: 'relative',
+    display: 'block',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    border: '1px solid #e5e5e5',
+    aspectRatio: '1 / 1',
+    textDecoration: 'none',
+  },
+  photoImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  },
+  photoType: {
+    position: 'absolute',
+    bottom: '6px',
+    left: '6px',
+    padding: '2px 8px',
+    background: 'rgba(0,0,0,0.65)',
+    color: '#fff',
+    fontSize: '10px',
+    fontWeight: 700,
+    borderRadius: '10px',
+  },
   stateBox: {
     padding: '60px 20px',
     textAlign: 'center',
@@ -498,7 +544,6 @@ const styles = {
     textAlign: 'center',
   },
   errorText: { margin: 0, color: '#c0392b', fontSize: '14px' },
-
   // Timeline
   timeline: { display: 'flex', flexDirection: 'column' },
   timelineItem: { display: 'flex', gap: '16px', minHeight: '60px' },
@@ -545,7 +590,6 @@ const styles = {
     lineHeight: 1.5,
   },
   timelineBy: { margin: '4px 0 0', color: '#888', fontSize: '11px' },
-
   // Aksi
   actionsRow: { display: 'flex', gap: '12px', flexWrap: 'wrap' },
   actionBtn: {
@@ -571,7 +615,6 @@ const styles = {
     fontSize: '14px',
     fontWeight: 600,
   },
-
   // Modal
   modalOverlay: {
     position: 'fixed',

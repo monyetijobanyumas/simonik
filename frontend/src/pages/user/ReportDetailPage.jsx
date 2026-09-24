@@ -1,7 +1,7 @@
 // ============================================================
 // SIMONIK - Report Detail Page (User)
 // File: src/pages/user/ReportDetailPage.jsx
-// Deskripsi: Halaman detail laporan untuk user + timeline
+// Deskripsi: Halaman detail laporan user + timeline + foto
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -19,14 +19,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Mapping scope
 const SCOPE_INFO = {
   jalan: { label: 'Jalan', icon: '🛣️' },
   lampu: { label: 'Lampu Penerangan Jalan', icon: '💡' },
   drainase: { label: 'Drainase', icon: '🚰' },
 };
 
-// Mapping status
 const STATUS_INFO = {
   DIAJUKAN: { label: 'Diajukan', color: '#f39c12', bg: '#fef5e7' },
   DIVERIFIKASI: { label: 'Diverifikasi', color: '#3498db', bg: '#eaf4fb' },
@@ -35,11 +33,14 @@ const STATUS_INFO = {
   DITOLAK: { label: 'Ditolak', color: '#c0392b', bg: '#fff5f5' },
 };
 
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+
 export default function ReportDetailPage() {
   const { id } = useParams();
 
   const [report, setReport] = useState(null);
   const [history, setHistory] = useState([]);
+  const [attachments, setAttachments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -52,12 +53,14 @@ export default function ReportDetailPage() {
     setLoading(true);
     setError('');
     try {
-      const [reportRes, historyRes] = await Promise.all([
+      const [reportRes, historyRes, attachRes] = await Promise.all([
         api.get(`/reports/${id}`),
         api.get(`/reports/${id}/history`),
+        api.get(`/reports/${id}/attachments`),
       ]);
       setReport(reportRes.data.data.report);
       setHistory(historyRes.data.data.history);
+      setAttachments(attachRes.data.data.attachments || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal memuat detail laporan.');
     } finally {
@@ -65,7 +68,6 @@ export default function ReportDetailPage() {
     }
   }
 
-  // Loading state
   if (loading) {
     return (
       <div style={styles.container}>
@@ -76,7 +78,6 @@ export default function ReportDetailPage() {
     );
   }
 
-  // Error state
   if (error || !report) {
     return (
       <div style={styles.container}>
@@ -102,12 +103,12 @@ export default function ReportDetailPage() {
     <div style={styles.container}>
       {/* Back link */}
       <Link
-        to="/user/dashboard"
+        to="/user/my-reports"
         style={styles.backLink}
         onMouseEnter={(e) => (e.target.style.color = '#1a5490')}
         onMouseLeave={(e) => (e.target.style.color = '#0b3d6b')}
       >
-        ← Kembali ke Dashboard
+        ← Kembali ke Laporan Saya
       </Link>
 
       {/* Card: Header Info */}
@@ -137,6 +138,34 @@ export default function ReportDetailPage() {
         <h2 style={styles.sectionTitle}>Deskripsi</h2>
         <p style={styles.description}>{report.description}</p>
       </div>
+
+      {/* Card: Foto */}
+      {attachments.length > 0 && (
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>Foto ({attachments.length})</h2>
+          <div style={styles.photoGrid}>
+            {attachments.map((att) => (
+              <a
+                key={att.id}
+                href={`${API_BASE}${att.file_url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={styles.photoItem}
+              >
+                <img
+                  src={`${API_BASE}${att.file_url}`}
+                  alt="Foto laporan"
+                  style={styles.photoImg}
+                  loading="lazy"
+                />
+                <span style={styles.photoType}>
+                  {att.type === 'bukti' ? '✓ Bukti' : '📷 Laporan'}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Card: Lokasi */}
       <div style={styles.card}>
@@ -284,7 +313,7 @@ const styles = {
     fontStyle: 'italic',
   },
 
-  // Section title di dalam card
+  // Section title
   sectionTitle: {
     margin: '0 0 12px',
     color: '#0b3d6b',
@@ -314,6 +343,39 @@ const styles = {
   map: {
     height: '100%',
     width: '100%',
+  },
+
+  // Foto gallery
+  photoGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+    gap: '10px',
+  },
+  photoItem: {
+    position: 'relative',
+    display: 'block',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    border: '1px solid #e5e5e5',
+    aspectRatio: '1 / 1',
+    textDecoration: 'none',
+  },
+  photoImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  },
+  photoType: {
+    position: 'absolute',
+    bottom: '6px',
+    left: '6px',
+    padding: '2px 8px',
+    background: 'rgba(0,0,0,0.65)',
+    color: '#fff',
+    fontSize: '10px',
+    fontWeight: 700,
+    borderRadius: '10px',
   },
 
   // States

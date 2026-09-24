@@ -1,7 +1,7 @@
 // ============================================================
 // SIMONIK - Create Report Page (Step 2)
 // File: src/pages/user/CreateReportPage.jsx
-// Deskripsi: Form detail laporan (step 2 dari 2)
+// Deskripsi: Form detail laporan + upload foto
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -24,7 +24,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Mapping scope → info
 const SCOPE_INFO = {
   jalan: { label: 'Jalan', icon: '🛣️' },
   lampu: { label: 'Lampu Penerangan Jalan', icon: '💡' },
@@ -32,14 +31,11 @@ const SCOPE_INFO = {
 };
 
 const VALID_SCOPES = ['jalan', 'lampu', 'drainase'];
-
-// Default center: Purwokerto
 const DEFAULT_CENTER = [-7.4234, 109.2345];
 const DEFAULT_ZOOM = 15;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-// ============================================================
 // Komponen: klik peta untuk pindah marker
-// ============================================================
 function LocationMarker({ position, setPosition }) {
   useMapEvents({
     click(e) {
@@ -49,31 +45,23 @@ function LocationMarker({ position, setPosition }) {
   return position ? <Marker position={position} /> : null;
 }
 
-// ============================================================
 // Komponen: pindahkan peta ke posisi baru
-// ============================================================
 function MapController({ position }) {
   const map = useMap();
   useEffect(() => {
-    if (position) {
-      map.setView(position, map.getZoom());
-    }
+    if (position) map.setView(position, map.getZoom());
   }, [position, map]);
   return null;
 }
 
-// ============================================================
-// Komponen Utama
-// ============================================================
 export default function CreateReportPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Ambil scope dari URL
   const scopeParam = searchParams.get('scope');
   const scopeInfo = SCOPE_INFO[scopeParam];
 
-  // Validasi scope — kalau tidak valid, redirect ke halaman pilih jenis
+  // Validasi scope
   useEffect(() => {
     if (!scopeParam || !VALID_SCOPES.includes(scopeParam)) {
       navigate('/user/report-type', { replace: true });
@@ -84,12 +72,14 @@ export default function CreateReportPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [position, setPosition] = useState(DEFAULT_CENTER);
+  const [photo, setPhoto] = useState(null); // File object
+  const [photoPreview, setPhotoPreview] = useState(null); // Data URL
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsStatus, setGpsStatus] = useState('');
 
-  // Ambil GPS otomatis saat halaman dibuka
+  // Ambil GPS otomatis
   useEffect(() => {
     if (scopeInfo) handleGetLocation();
     // eslint-disable-next-line
@@ -100,10 +90,8 @@ export default function CreateReportPage() {
       setGpsStatus('Browser tidak mendukung GPS');
       return;
     }
-
     setGpsLoading(true);
     setGpsStatus('Mengambil lokasi...');
-
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -122,6 +110,43 @@ export default function CreateReportPage() {
     );
   }
 
+  // Handler pilih file foto
+  function handlePhotoChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validasi tipe
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Hanya file JPG, PNG, atau WEBP yang diizinkan.');
+      e.target.value = '';
+      return;
+    }
+
+    // Validasi ukuran
+    if (file.size > MAX_FILE_SIZE) {
+      setError('Ukuran file maksimal 5MB.');
+      e.target.value = '';
+      return;
+    }
+
+    setError('');
+    setPhoto(file);
+
+    // Preview
+    const reader = new FileReader();
+    reader.onloadend = () => setPhotoPreview(reader.result);
+    reader.readAsDataURL(file);
+  }
+
+  // Hapus foto yang dipilih
+  function handleRemovePhoto() {
+    setPhoto(null);
+    setPhotoPreview(null);
+    const input = document.getElementById('photo-input');
+    if (input) input.value = '';
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -138,13 +163,28 @@ export default function CreateReportPage() {
     setLoading(true);
 
     try {
-      await api.post('/reports', {
+      // 1. Buat laporan dulu
+      const reportRes = await api.post('/reports', {
         scope: scopeParam,
         title,
         description,
         latitude: position[0],
         longitude: position[1],
       });
+
+      const reportId = reportRes.data.data.report.id;
+
+      // 2. Kalau ada foto, upload
+      if (photo) {
+        const formData = new FormData();
+        formData.append('file', photo);
+
+        await api.post(`/reports/${reportId}/attachments`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      }
 
       alert('Laporan berhasil dikirim!');
       navigate('/user/my-reports');
@@ -155,12 +195,11 @@ export default function CreateReportPage() {
     }
   }
 
-  // Kalau scope tidak valid, jangan render apa-apa (tunggu redirect)
   if (!scopeInfo) return null;
 
   return (
     <div style={styles.container}>
-      {/* Header dengan tombol ganti jenis */}
+      {/* Header */}
       <div style={styles.header}>
         <Link
           to="/user/report-type"
@@ -172,11 +211,8 @@ export default function CreateReportPage() {
         </Link>
 
         <h1 style={styles.title}>Buat Laporan Baru</h1>
-        <p style={styles.subtitle}>
-          Lengkapi detail laporan Anda
-        </p>
+        <p style={styles.subtitle}>Lengkapi detail laporan Anda</p>
 
-        {/* Step Indicator */}
         <div style={styles.stepIndicator}>
           <div style={styles.stepDotDone} />
           <div style={styles.stepDotActive} />
@@ -185,7 +221,7 @@ export default function CreateReportPage() {
       </div>
 
       <form onSubmit={handleSubmit} style={styles.form}>
-        {/* Card: Info Jenis yang Dipilih */}
+        {/* Card: Jenis Terpilih */}
         <div style={styles.selectedTypeCard}>
           <div style={styles.selectedTypeIcon}>{scopeInfo.icon}</div>
           <div style={styles.selectedTypeContent}>
@@ -220,6 +256,45 @@ export default function CreateReportPage() {
             onFocus={(e) => (e.target.style.borderColor = '#0b3d6b')}
             onBlur={(e) => (e.target.style.borderColor = '#ccc')}
           />
+        </div>
+
+        {/* Foto */}
+        <div style={styles.field}>
+          <label style={styles.label}>
+            Foto Bukti <span style={styles.optional}>(opsional)</span>
+          </label>
+
+          {!photoPreview ? (
+            <div style={styles.uploadBox}>
+              <input
+                id="photo-input"
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                style={styles.fileInput}
+              />
+              <label htmlFor="photo-input" style={styles.uploadLabel}>
+                <div style={styles.uploadIcon}>📷</div>
+                <p style={styles.uploadText}>Klik untuk pilih foto</p>
+                <p style={styles.uploadHint}>
+                  Format: JPG, PNG, WEBP · Maks 5MB
+                </p>
+              </label>
+            </div>
+          ) : (
+            <div style={styles.previewBox}>
+              <img src={photoPreview} alt="Preview" style={styles.previewImg} />
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                style={styles.removePhotoBtn}
+                onMouseEnter={(e) => (e.target.style.background = '#c0392b')}
+                onMouseLeave={(e) => (e.target.style.background = '#e74c3c')}
+              >
+                ✗ Hapus Foto
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Lokasi */}
@@ -268,10 +343,8 @@ export default function CreateReportPage() {
           </p>
         </div>
 
-        {/* Error */}
         {error && <div style={styles.error}>{error}</div>}
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -303,9 +376,7 @@ const styles = {
     padding: '40px 20px',
     fontFamily: 'system-ui, sans-serif',
   },
-  header: {
-    marginBottom: '24px',
-  },
+  header: { marginBottom: '24px' },
   backLink: {
     display: 'inline-block',
     marginBottom: '12px',
@@ -315,22 +386,9 @@ const styles = {
     fontWeight: 600,
     transition: 'color 0.2s ease',
   },
-  title: {
-    margin: 0,
-    color: '#0b3d6b',
-    fontSize: '24px',
-  },
-  subtitle: {
-    margin: '4px 0 16px',
-    color: '#666',
-    fontSize: '14px',
-  },
-  // Step indicator
-  stepIndicator: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
+  title: { margin: 0, color: '#0b3d6b', fontSize: '24px' },
+  subtitle: { margin: '4px 0 16px', color: '#666', fontSize: '14px' },
+  stepIndicator: { display: 'flex', alignItems: 'center', gap: '6px' },
   stepDotDone: {
     width: '8px',
     height: '8px',
@@ -349,12 +407,7 @@ const styles = {
     color: '#888',
     fontStyle: 'italic',
   },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  // Selected type card
+  form: { display: 'flex', flexDirection: 'column', gap: '20px' },
   selectedTypeCard: {
     display: 'flex',
     alignItems: 'center',
@@ -364,14 +417,8 @@ const styles = {
     border: '1px solid #cce0f5',
     borderRadius: '8px',
   },
-  selectedTypeIcon: {
-    fontSize: '32px',
-  },
-  selectedTypeContent: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
+  selectedTypeIcon: { fontSize: '32px' },
+  selectedTypeContent: { display: 'flex', flexDirection: 'column', gap: '2px' },
   selectedTypeLabel: {
     margin: 0,
     fontSize: '11px',
@@ -386,16 +433,9 @@ const styles = {
     color: '#0b3d6b',
     fontWeight: 700,
   },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  label: {
-    fontSize: '14px',
-    fontWeight: 600,
-    color: '#333',
-  },
+  field: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  label: { fontSize: '14px', fontWeight: 600, color: '#333' },
+  optional: { color: '#888', fontWeight: 400, fontStyle: 'italic' },
   input: {
     padding: '10px 12px',
     fontSize: '14px',
@@ -415,6 +455,63 @@ const styles = {
     resize: 'vertical',
     transition: 'border-color 0.2s ease',
   },
+  // Upload foto
+  uploadBox: {
+    position: 'relative',
+  },
+  fileInput: {
+    position: 'absolute',
+    width: '1px',
+    height: '1px',
+    opacity: 0,
+    overflow: 'hidden',
+  },
+  uploadLabel: {
+    display: 'block',
+    padding: '32px 20px',
+    background: '#fafbfc',
+    border: '2px dashed #ccc',
+    borderRadius: '8px',
+    textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'border-color 0.2s ease, background 0.2s ease',
+  },
+  uploadIcon: { fontSize: '32px', marginBottom: '8px' },
+  uploadText: {
+    margin: '0 0 4px',
+    color: '#0b3d6b',
+    fontSize: '14px',
+    fontWeight: 600,
+  },
+  uploadHint: { margin: 0, color: '#888', fontSize: '11px' },
+  // Preview
+  previewBox: {
+    position: 'relative',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    border: '1px solid #e5e5e5',
+  },
+  previewImg: {
+    display: 'block',
+    width: '100%',
+    maxHeight: '300px',
+    objectFit: 'cover',
+  },
+  removePhotoBtn: {
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    padding: '6px 12px',
+    background: '#e74c3c',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: 600,
+    transition: 'background 0.2s ease',
+  },
+  // GPS & peta
   gpsRow: {
     display: 'flex',
     alignItems: 'center',
@@ -433,11 +530,7 @@ const styles = {
     fontWeight: 600,
     transition: 'background 0.2s ease, transform 0.2s ease',
   },
-  gpsStatus: {
-    fontSize: '12px',
-    color: '#666',
-    fontStyle: 'italic',
-  },
+  gpsStatus: { fontSize: '12px', color: '#666', fontStyle: 'italic' },
   mapWrapper: {
     height: '400px',
     borderRadius: '8px',
@@ -445,20 +538,9 @@ const styles = {
     border: '1px solid #ccc',
     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
   },
-  map: {
-    height: '100%',
-    width: '100%',
-  },
-  coordInfo: {
-    margin: '8px 0 0',
-    fontSize: '13px',
-    color: '#333',
-  },
-  coordHint: {
-    fontSize: '11px',
-    color: '#888',
-    fontStyle: 'italic',
-  },
+  map: { height: '100%', width: '100%' },
+  coordInfo: { margin: '8px 0 0', fontSize: '13px', color: '#333' },
+  coordHint: { fontSize: '11px', color: '#888', fontStyle: 'italic' },
   error: {
     padding: '12px',
     background: '#fff5f5',
