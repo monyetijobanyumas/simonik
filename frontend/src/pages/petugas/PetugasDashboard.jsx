@@ -1,7 +1,7 @@
 // ============================================================
 // SIMONIK - Petugas Dashboard
 // File: src/pages/petugas/PetugasDashboard.jsx
-// Deskripsi: Dashboard petugas - laporan per-scope + tombol peta
+// Deskripsi: Dashboard petugas - laporan per-scope + tombol peta + statistik
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -91,7 +91,7 @@ export default function PetugasDashboard() {
         <div style={styles.headerActions}>
           <button
             onClick={() => navigate('/petugas/map')}
-            style={styles.mapBtn}
+            style={styles.actionBtn}
             onMouseEnter={(e) => {
               e.target.style.background = '#0b3d6b';
               e.target.style.color = '#fff';
@@ -102,6 +102,20 @@ export default function PetugasDashboard() {
             }}
           >
             🗺️ Peta Laporan
+          </button>
+          <button
+            onClick={() => navigate('/petugas/statistik')}
+            style={styles.actionBtn}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#0b3d6b';
+              e.target.style.color = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = '#fff';
+              e.target.style.color = '#0b3d6b';
+            }}
+          >
+            📊 Statistik
           </button>
           <button
             onClick={logout}
@@ -234,21 +248,9 @@ const styles = {
     gap: '16px',
     flexWrap: 'wrap',
   },
-  title: {
-    margin: 0,
-    color: '#0b3d6b',
-    fontSize: '24px',
-  },
-  subtitle: {
-    margin: '4px 0 8px',
-    color: '#666',
-    fontSize: '14px',
-  },
-  scopeBadges: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '6px',
-  },
+  title: { margin: 0, color: '#0b3d6b', fontSize: '24px' },
+  subtitle: { margin: '4px 0 8px', color: '#666', fontSize: '14px' },
+  scopeBadges: { display: 'flex', flexWrap: 'wrap', gap: '6px' },
   scopeBadge: {
     display: 'inline-block',
     padding: '3px 10px',
@@ -263,9 +265,10 @@ const styles = {
     gap: '8px',
     alignItems: 'center',
     flexShrink: 0,
+    flexWrap: 'wrap',
   },
-  mapBtn: {
-    padding: '8px 16px',
+  actionBtn: {
+    padding: '8px 14px',
     background: '#fff',
     color: '#0b3d6b',
     border: '1px solid #0b3d6b',
@@ -308,10 +311,7 @@ const styles = {
     fontWeight: 600,
     transition: 'background 0.2s ease, color 0.2s ease',
   },
-  tabActive: {
-    background: '#0b3d6b',
-    color: '#fff',
-  },
+  tabActive: { background: '#0b3d6b', color: '#fff' },
   tabBadge: {
     display: 'inline-block',
     padding: '1px 7px',
@@ -325,9 +325,7 @@ const styles = {
     background: 'rgba(255,255,255,0.25)',
     color: '#fff',
   },
-  section: {
-    marginTop: '8px',
-  },
+  section: { marginTop: '8px' },
   sectionHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -366,10 +364,7 @@ const styles = {
     textAlign: 'center',
     color: '#888',
   },
-  stateText: {
-    fontSize: '14px',
-    fontStyle: 'italic',
-  },
+  stateText: { fontSize: '14px', fontStyle: 'italic' },
   errorBox: {
     padding: '16px 20px',
     background: '#fff5f5',
@@ -377,11 +372,7 @@ const styles = {
     borderRadius: '8px',
     textAlign: 'center',
   },
-  errorText: {
-    margin: '0 0 12px',
-    color: '#c0392b',
-    fontSize: '14px',
-  },
+  errorText: { margin: '0 0 12px', color: '#c0392b', fontSize: '14px' },
   retryBtn: {
     padding: '8px 16px',
     background: '#c0392b',
@@ -399,19 +390,12 @@ const styles = {
     borderRadius: '8px',
     border: '1px dashed #ccc',
   },
-  emptyIcon: {
-    fontSize: '40px',
-    marginBottom: '12px',
-  },
+  emptyIcon: { fontSize: '40px', marginBottom: '12px' },
   emptyTitle: {
     margin: '0 0 4px',
     color: '#333',
     fontSize: '16px',
     fontWeight: 600,
   },
-  emptyText: {
-    margin: 0,
-    color: '#888',
-    fontSize: '13px',
-  },
+  emptyText: { margin: 0, color: '#888', fontSize: '13px' },
 };

@@ -1,7 +1,7 @@
 // ============================================================
 // SIMONIK - User Dashboard
 // File: src/pages/user/UserDashboard.jsx
-// Deskripsi: Landing page user dengan 3 tombol utama
+// Deskripsi: Landing page user dengan 4 tombol utama
 // ============================================================
 
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,12 @@ export default function UserDashboard() {
       title: 'Peta Laporan',
       desc: 'Lihat persebaran laporan di peta',
       path: '/user/map',
+    },
+    {
+      icon: '📊',
+      title: 'Statistik',
+      desc: 'Lihat ringkasan data dan grafik laporan',
+      path: '/user/statistik',
     },
   ];
 
@@ -109,7 +115,7 @@ const styles = {
   },
   menuGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
     gap: '20px',
   },
   menuCard: {
