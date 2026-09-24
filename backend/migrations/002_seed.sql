@@ -22,10 +22,10 @@
 -- ============================================================
 
 INSERT INTO users (name, email, password_hash, role) VALUES
-  ('User Demo',       'user@simonik.test',     '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'user'),
-  ('Petugas Jalan',   'jalan@simonik.test',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'petugas'),
-  ('Petugas Lampu',   'lampu@simonik.test',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'petugas'),
-  ('Petugas Drainase','drainase@simonik.test', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'petugas');
+  ('User Demo',       'user@simonik.test',     '$2b$10$cTOaJuD9wvZp0TnvHCuZiefnhP/lXYCgdkliUv11OBan1DPFMJKXi', 'user'),
+  ('Petugas Jalan',   'jalan@simonik.test',    '$2b$10$cTOaJuD9wvZp0TnvHCuZiefnhP/lXYCgdkliUv11OBan1DPFMJKXi', 'petugas'),
+  ('Petugas Lampu',   'lampu@simonik.test',    '$2b$10$cTOaJuD9wvZp0TnvHCuZiefnhP/lXYCgdkliUv11OBan1DPFMJKXi', 'petugas'),
+  ('Petugas Drainase','drainase@simonik.test', '$2b$10$cTOaJuD9wvZp0TnvHCuZiefnhP/lXYCgdkliUv11OBan1DPFMJKXi', 'petugas');
 
 -- ============================================================
 -- 2. INSERT PETUGAS_SCOPES

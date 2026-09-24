@@ -10,7 +10,7 @@ const cors = require('cors');
 
 // Import routes
 const authRoutes = require('./modules/auth/auth.routes');
-
+const reportsRoutes = require('./modules/reports/reports.routes');
 const app = express();
 
 // ============================================================
@@ -36,7 +36,8 @@ app.get('/', (req, res) => {
 
 // Auth routes → /api/auth/...
 app.use('/api/auth', authRoutes);
-
+// Reports routes → /api/reports/...
+app.use('/api/reports', reportsRoutes);
 // ============================================================
 // 404 HANDLER
 // ============================================================
