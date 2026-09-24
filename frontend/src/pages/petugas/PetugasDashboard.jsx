@@ -1,7 +1,7 @@
 // ============================================================
 // SIMONIK - Petugas Dashboard
 // File: src/pages/petugas/PetugasDashboard.jsx
-// Deskripsi: Dashboard petugas - laporan per-scope + tombol peta + statistik
+// Deskripsi: Dashboard petugas - summary cards + list
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -16,14 +16,13 @@ const SCOPE_INFO = {
   drainase: { label: 'Drainase', icon: '🚰' },
 };
 
-const TABS = [
-  { key: 'ALL', label: 'Semua' },
-  { key: 'DIAJUKAN', label: 'Diajukan' },
-  { key: 'DIVERIFIKASI', label: 'Diverifikasi' },
-  { key: 'DIPROSES', label: 'Diproses' },
-  { key: 'SELESAI', label: 'Selesai' },
-  { key: 'DITOLAK', label: 'Ditolak' },
-];
+const STATUS_INFO = {
+  DIAJUKAN: { label: 'Diajukan', color: '#f39c12' },
+  DIVERIFIKASI: { label: 'Diverifikasi', color: '#3498db' },
+  DIPROSES: { label: 'Diproses', color: '#9b59b6' },
+  SELESAI: { label: 'Selesai', color: '#27ae60' },
+  DITOLAK: { label: 'Ditolak', color: '#c0392b' },
+};
 
 export default function PetugasDashboard() {
   const { user, logout } = useAuth();
@@ -32,7 +31,7 @@ export default function PetugasDashboard() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('ALL');
+  const [activeFilter, setActiveFilter] = useState('ALL');
 
   useEffect(() => {
     fetchReports();
@@ -56,17 +55,53 @@ export default function PetugasDashboard() {
     navigate(`/petugas/report/${reportId}`);
   }
 
+  // Filter list sesuai summary card aktif
   const filteredReports =
-    activeTab === 'ALL'
+    activeFilter === 'ALL'
       ? reports
-      : reports.filter((r) => r.status === activeTab);
+      : reports.filter((r) => r.status === activeFilter);
 
   function countByStatus(status) {
     if (status === 'ALL') return reports.length;
     return reports.filter((r) => r.status === status).length;
   }
 
+  function handleSummaryClick(status) {
+    // Klik card yang sama = toggle off (kembali ke ALL)
+    if (activeFilter === status && status !== 'ALL') {
+      setActiveFilter('ALL');
+    } else {
+      setActiveFilter(status);
+    }
+    // Scroll ke list
+    setTimeout(() => {
+      const el = document.getElementById('laporan-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
+
   const userScopes = user?.scopes || [];
+
+  const summaryData = [
+    {
+      key: 'ALL',
+      label: 'Total Laporan',
+      count: reports.length,
+      color: '#0b3d6b',
+    },
+    ...Object.entries(STATUS_INFO).map(([key, info]) => ({
+      key,
+      label: info.label,
+      count: countByStatus(key),
+      color: info.color,
+    })),
+  ];
+
+  // Label untuk header list
+  const activeLabel =
+    activeFilter === 'ALL'
+      ? 'Semua Laporan'
+      : STATUS_INFO[activeFilter]?.label || activeFilter;
 
   return (
     <div style={styles.container}>
@@ -128,48 +163,81 @@ export default function PetugasDashboard() {
         </div>
       </div>
 
-      {/* Tab Filter */}
-      <div style={styles.tabsWrapper}>
-        {TABS.map((tab) => {
-          const count = countByStatus(tab.key);
-          const isActive = activeTab === tab.key;
+      {/* Summary Cards (sekaligus filter) */}
+      <div style={styles.summaryGrid}>
+        {summaryData.map((item) => {
+          const isActive = activeFilter === item.key;
           return (
             <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              key={item.key}
+              onClick={() => handleSummaryClick(item.key)}
               style={{
-                ...styles.tab,
-                ...(isActive ? styles.tabActive : {}),
+                ...styles.summaryCard,
+                borderColor: isActive ? item.color : '#e5e5e5',
+                background: isActive ? `${item.color}0d` : '#fff',
+                boxShadow: isActive
+                  ? `0 4px 12px ${item.color}33`
+                  : '0 2px 8px rgba(0,0,0,0.04)',
               }}
               onMouseEnter={(e) => {
-                if (!isActive) e.target.style.background = '#f0f7ff';
+                if (!isActive) {
+                  e.currentTarget.style.borderColor = item.color;
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }
               }}
               onMouseLeave={(e) => {
-                if (!isActive) e.target.style.background = 'transparent';
+                if (!isActive) {
+                  e.currentTarget.style.borderColor = '#e5e5e5';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
               }}
             >
-              {tab.label}
-              <span
+              <div
                 style={{
-                  ...styles.tabBadge,
-                  ...(isActive ? styles.tabBadgeActive : {}),
+                  ...styles.summaryLabel,
+                  color: item.color,
                 }}
               >
-                {count}
-              </span>
+                {item.label}
+              </div>
+              <div
+                style={{
+                  ...styles.summaryValue,
+                  color: item.color,
+                }}
+              >
+                {item.count}
+              </div>
             </button>
           );
         })}
       </div>
 
+      {/* Info filter aktif */}
+      {activeFilter !== 'ALL' && (
+        <div style={styles.filterInfo}>
+          <span style={styles.filterInfoText}>
+            Menampilkan laporan dengan status:{' '}
+            <strong style={{ color: STATUS_INFO[activeFilter]?.color }}>
+              {STATUS_INFO[activeFilter]?.label}
+            </strong>
+          </span>
+          <button
+            onClick={() => setActiveFilter('ALL')}
+            style={styles.clearFilterBtn}
+            onMouseEnter={(e) => (e.target.style.background = '#f0f0f0')}
+            onMouseLeave={(e) => (e.target.style.background = '#fff')}
+          >
+            ✗ Hapus filter
+          </button>
+        </div>
+      )}
+
       {/* Section List */}
-      <div style={styles.section}>
+      <div style={styles.section} id="laporan-section">
         <div style={styles.sectionHeader}>
           <h2 style={styles.sectionTitle}>
-            Laporan{' '}
-            {activeTab !== 'ALL'
-              ? TABS.find((t) => t.key === activeTab).label
-              : ''}
+            {activeLabel}
             {!loading && filteredReports.length > 0 && (
               <span style={styles.countBadge}>{filteredReports.length}</span>
             )}
@@ -203,16 +271,16 @@ export default function PetugasDashboard() {
           <div style={styles.emptyBox}>
             <div style={styles.emptyIcon}>📭</div>
             <p style={styles.emptyTitle}>
-              {activeTab === 'ALL'
+              {activeFilter === 'ALL'
                 ? 'Belum ada laporan di scope Anda'
                 : `Tidak ada laporan dengan status ${
-                    TABS.find((t) => t.key === activeTab)?.label
+                    STATUS_INFO[activeFilter]?.label
                   }`}
             </p>
             <p style={styles.emptyText}>
-              {activeTab === 'ALL'
+              {activeFilter === 'ALL'
                 ? 'Laporan dari user akan muncul di sini sesuai scope Anda.'
-                : 'Coba pilih tab lain.'}
+                : 'Coba pilih status lain atau hapus filter.'}
             </p>
           </div>
         )}
@@ -289,41 +357,67 @@ const styles = {
     fontWeight: 600,
     transition: 'background 0.2s ease',
   },
-  tabsWrapper: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '6px',
-    marginBottom: '24px',
-    borderBottom: '1px solid #e5e5e5',
-    paddingBottom: '12px',
+  summaryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+    gap: '10px',
+    marginBottom: '20px',
   },
-  tab: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '8px 14px',
-    background: 'transparent',
+  summaryCard: {
+    background: '#fff',
+    border: '2px solid #e5e5e5',
+    borderRadius: '8px',
+    padding: '14px 12px',
+    textAlign: 'center',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    transition:
+      'border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+  },
+  summaryLabel: {
+    fontSize: '10px',
     color: '#666',
-    border: 'none',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    fontWeight: 700,
+    marginBottom: '6px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  summaryValue: {
+    fontSize: '22px',
+    fontWeight: 800,
+    lineHeight: 1,
+  },
+  filterInfo: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 14px',
+    background: '#f0f7ff',
+    border: '1px solid #cce0f5',
+    borderRadius: '8px',
+    marginBottom: '20px',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  filterInfoText: {
+    fontSize: '13px',
+    color: '#333',
+  },
+  clearFilterBtn: {
+    padding: '6px 12px',
+    background: '#fff',
+    color: '#666',
+    border: '1px solid #ccc',
     borderRadius: '6px',
     cursor: 'pointer',
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: 600,
-    transition: 'background 0.2s ease, color 0.2s ease',
-  },
-  tabActive: { background: '#0b3d6b', color: '#fff' },
-  tabBadge: {
-    display: 'inline-block',
-    padding: '1px 7px',
-    background: '#f0f0f0',
-    color: '#666',
-    borderRadius: '10px',
-    fontSize: '10px',
-    fontWeight: 700,
-  },
-  tabBadgeActive: {
-    background: 'rgba(255,255,255,0.25)',
-    color: '#fff',
+    fontFamily: 'inherit',
+    transition: 'background 0.2s ease',
   },
   section: { marginTop: '8px' },
   sectionHeader: {
