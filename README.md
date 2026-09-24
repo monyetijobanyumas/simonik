@@ -4,10 +4,14 @@
 
 Aplikasi berbasis web untuk menerima pengaduan masyarakat mengenai masalah infrastruktur publik berbasis lokasi, dengan fitur verifikasi, penanganan oleh petugas per-scope, dan monitoring status laporan.
 
+> **📚 Proyek Capstone — Tugas Kuliah Kelompok, Semester 7**
+> Proyek ini dikembangkan sebagai bagian dari **Capstone Project** pada Semester 7. Tujuan utamanya adalah merancang dan membangun **prototype sistem informasi berbasis Web GIS** yang menghubungkan masyarakat dengan pengelola infrastruktur publik dalam satu platform terintegrasi.
+
 ---
 
 ## 📋 Daftar Isi
 
+- [Latar Belakang & Tujuan](#latar-belakang--tujuan)
 - [Fitur Utama](#fitur-utama)
 - [Arsitektur](#arsitektur)
 - [Teknologi](#teknologi)
@@ -21,7 +25,41 @@ Aplikasi berbasis web untuk menerima pengaduan masyarakat mengenai masalah infra
 
 ---
 
-## ✨ Fitur Utama
+## Latar Belakang & Tujuan
+
+### Latar Belakang
+
+Infrastruktur publik seperti **jalan, lampu penerangan jalan, dan drainase** merupakan fasilitas vital yang sering mengalami kerusakan. Sayangnya, proses pelaporan masalah infrastruktur oleh masyarakat masih bersifat **manual dan tidak terstruktur** — misalnya melalui telepon, surat, atau media sosial. Hal ini menyebabkan:
+
+- **Laporan tidak terpusat** — sulit dilacak dan didokumentasikan.
+- **Lokasi kerusakan tidak akurat** — tidak ada koordinat GPS yang jelas.
+- **Tidak ada tracking status** — masyarakat tidak tahu laporan mereka sudah ditangani atau belum.
+- **Penanganan tidak efisien** — petugas kesulitan memprioritaskan laporan.
+
+### Tujuan Utama
+
+SIMONIK dikembangkan untuk menjawab masalah-masalah di atas, dengan tujuan:
+
+1. **Memudahkan masyarakat** melaporkan masalah infrastruktur publik secara digital.
+2. **Menyimpan lokasi pengaduan secara akurat** menggunakan GPS/browser geolocation + peta interaktif.
+3. **Memverifikasi dan meneruskan laporan** secara otomatis ke petugas dengan scope yang sesuai (jalan/lampu/drainase).
+4. **Membantu petugas** menangani laporan secara terstruktur — dari verifikasi hingga penyelesaian.
+5. **Memberikan transparansi** kepada masyarakat melalui timeline status yang dapat dilacak.
+6. **Menyediakan dashboard monitoring** dengan peta persebaran dan statistik laporan.
+
+### Ruang Lingkup MVP
+
+Untuk menjaga proyek tetap realistis sebagai **prototype akademik**, scope MVP dibatasi pada:
+
+- **3 jenis infrastruktur**: Jalan, Lampu Penerangan Jalan, Drainase
+- **2 role**: User (masyarakat) dan Petugas (per-scope)
+- **Verifikasi otomatis** berdasarkan jenis infrastruktur
+- **Data simulasi** (tidak terintegrasi dengan sistem pemerintah nyata)
+- **Deployment lokal** atau via tunneling untuk demo
+
+---
+
+## Fitur Utama
 
 ### Role User (Masyarakat)
 
@@ -60,49 +98,11 @@ Aplikasi berbasis web untuk menerima pengaduan masyarakat mengenai masalah infra
 
 ---
 
-## 🏗️ Arsitektur
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ Browser │────▶│ Backend │────▶│ PostgreSQL │
-│ (React SPA) │◀────│ (Express) │◀────│ + PostGIS │
-└──────────────┘ └──────────────┘ └──────────────┘
-│ │ │
-Leaflet peta REST API Data laporan +
-Chart.js JWT auth koordinat GPS
+## Arsitektur
 
-
----
-
-## 🛠️ Teknologi
-
-### Backend
-
-- **Node.js** + **Express** — server & REST API
-- **PostgreSQL** + **PostGIS** — database + geospatial
-- **bcryptjs** — hash password
-- **jsonwebtoken** — autentikasi JWT
-- **multer** — upload file
-- **pg** — driver PostgreSQL
-
-### Frontend
-
-- **React** + **Vite** — framework UI
-- **React Router** — routing
-- **Axios** — HTTP client
-- **Leaflet** + **React Leaflet** — peta interaktif
-- **Chart.js** + **react-chartjs-2** — grafik statistik
-
----
-
-## 🚀 Cara Menjalankan
-
-### Prasyarat
-
-- Node.js 18+
-- PostgreSQL 16+ dengan PostGIS
-- Git
-
-### 1. Clone Repository
-
-```bash
-git clone https://github.com/monyetijobanyumas/simonik.git
-cd simonik
+```mermaid
+flowchart LR
+    A[Browser<br/>React SPA] <-->|REST API<br/>JWT Auth| B[Backend<br/>Express]
+    B <-->|Query SQL| C[(PostgreSQL<br/>+ PostGIS)]
+    A -.->|Leaflet + OSM| D[Peta Interaktif]
+    A -.->|Chart.js| E[Grafik Statistik]
