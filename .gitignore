@@ -5,3 +5,7 @@ uploads/
 .DS_Store
 dist/
 build/
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep

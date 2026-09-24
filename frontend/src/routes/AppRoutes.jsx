@@ -1,19 +1,19 @@
 // ============================================================
 // SIMONIK - App Routes
 // File: src/routes/AppRoutes.jsx
-// Deskripsi: Definisi routing aplikasi
 // ============================================================
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LoginPage from '../pages/auth/LoginPage';
 import UserDashboard from '../pages/user/UserDashboard';
+import ReportTypePage from '../pages/user/ReportTypePage';
 import CreateReportPage from '../pages/user/CreateReportPage';
+import MyReportsPage from '../pages/user/MyReportsPage';
+import ReportDetailPage from '../pages/user/ReportDetailPage';
 import PetugasDashboard from '../pages/petugas/PetugasDashboard';
+import ReportDetailPetugasPage from '../pages/petugas/ReportDetailPetugasPage';
 
-// ============================================================
-// Komponen untuk proteksi route (harus login)
-// ============================================================
 function ProtectedRoute({ children, allowedRole }) {
   const { user, loading } = useAuth();
 
@@ -25,20 +25,12 @@ function ProtectedRoute({ children, allowedRole }) {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRole && user.role !== allowedRole) {
-    return <Navigate to="/" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
+  if (allowedRole && user.role !== allowedRole) return <Navigate to="/" replace />;
 
   return children;
 }
 
-// ============================================================
-// Routing Utama
-// ============================================================
 export default function AppRoutes() {
   const { user } = useAuth();
 
@@ -58,10 +50,34 @@ export default function AppRoutes() {
           }
         />
         <Route
+          path="/user/report-type"
+          element={
+            <ProtectedRoute allowedRole="user">
+              <ReportTypePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/user/create-report"
           element={
             <ProtectedRoute allowedRole="user">
               <CreateReportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/my-reports"
+          element={
+            <ProtectedRoute allowedRole="user">
+              <MyReportsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/report/:id"
+          element={
+            <ProtectedRoute allowedRole="user">
+              <ReportDetailPage />
             </ProtectedRoute>
           }
         />
@@ -75,18 +91,22 @@ export default function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/petugas/report/:id"
+          element={
+            <ProtectedRoute allowedRole="petugas">
+              <ReportDetailPetugasPage />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Redirect default berdasarkan role */}
+        {/* Redirect default */}
         <Route
           path="/"
           element={
             user ? (
               <Navigate
-                to={
-                  user.role === 'petugas'
-                    ? '/petugas/dashboard'
-                    : '/user/dashboard'
-                }
+                to={user.role === 'petugas' ? '/petugas/dashboard' : '/user/dashboard'}
                 replace
               />
             ) : (
@@ -95,7 +115,6 @@ export default function AppRoutes() {
           }
         />
 
-        {/* Fallback: route tidak dikenal */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -86,4 +86,152 @@ async function getReportById(req, res) {
   }
 }
 
-module.exports = { createReport, getReports, getReportById };
+/**
+ * GET /api/reports/:id/history
+ */
+async function getReportHistory(req, res) {
+  try {
+    const { id } = req.params;
+
+    // Validasi akses (pakai fungsi yang sudah ada)
+    await reportsService.getReportById(id, req.user);
+
+    // Ambil history
+    const history = await reportsService.getReportHistory(id);
+
+    return res.status(200).json({
+      success: true,
+      data: { history },
+    });
+  } catch (error) {
+    return res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
+/**
+ * PATCH /api/reports/:id/status
+ * Update status laporan (petugas only)
+ * Body: { status, note }
+ */
+async function updateStatus(req, res) {
+  try {
+    const { id } = req.params;
+    const { status, note } = req.body;
+
+    // Validasi input
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status wajib diisi',
+      });
+    }
+
+    // Hanya petugas yang bisa update status
+    if (req.user.role !== 'petugas') {
+      return res.status(403).json({
+        success: false,
+        message: 'Hanya petugas yang dapat mengubah status laporan',
+      });
+    }
+
+    const report = await reportsService.updateReportStatus(
+      id,
+      status,
+      note,
+      req.user
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Status laporan berhasil diubah menjadi ${status}`,
+      data: { report },
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
+/**
+ * POST /api/reports/:id/attachments
+ * Upload foto (user atau petugas)
+ * Multipart form-data, field: "file"
+ */
+async function uploadAttachment(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'File wajib diunggah',
+      });
+    }
+
+    // Validasi akses — pastikan user boleh akses laporan ini
+    await reportsService.getReportById(id, req.user);
+
+    // Tentukan tipe: kalau petugas upload → 'bukti', kalau user → 'laporan'
+    const type = req.user.role === 'petugas' ? 'bukti' : 'laporan';
+
+    // URL relatif yang disimpan di database
+    const fileUrl = `/uploads/${req.file.filename}`;
+
+    const attachment = await reportsService.addAttachment({
+      report_id: id,
+      file_url: fileUrl,
+      type,
+      uploaded_by: req.user.id,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'File berhasil diunggah',
+      data: { attachment },
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
+/**
+ * GET /api/reports/:id/attachments
+ */
+async function getAttachments(req, res) {
+  try {
+    const { id } = req.params;
+
+    // Validasi akses
+    await reportsService.getReportById(id, req.user);
+
+    const attachments = await reportsService.getAttachments(id);
+
+    return res.status(200).json({
+      success: true,
+      data: { attachments, total: attachments.length },
+    });
+  } catch (error) {
+    return res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
+module.exports = {
+  createReport,
+  getReports,
+  getReportById,
+  getReportHistory,
+  updateStatus,
+  uploadAttachment,
+  getAttachments,
+};

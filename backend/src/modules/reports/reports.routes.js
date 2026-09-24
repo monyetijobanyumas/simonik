@@ -7,17 +7,27 @@ const express = require('express');
 const router = express.Router();
 const reportsController = require('./reports.controller');
 const authMiddleware = require('../../middlewares/auth');
+const upload = require('../../middlewares/upload');
 
-// Semua endpoint di bawah butuh login
 router.use(authMiddleware);
 
-// POST /api/reports → buat laporan baru
+// List & Create
 router.post('/', reportsController.createReport);
-
-// GET /api/reports → list laporan
 router.get('/', reportsController.getReports);
 
-// GET /api/reports/:id → detail laporan
+// Attachments (upload foto)
+router.post(
+  '/:id/attachments',
+  upload.single('file'),
+  reportsController.uploadAttachment
+);
+router.get('/:id/attachments', reportsController.getAttachments);
+
+// Detail & History
+router.get('/:id/history', reportsController.getReportHistory);
 router.get('/:id', reportsController.getReportById);
+
+// Update Status (petugas)
+router.patch('/:id/status', reportsController.updateStatus);
 
 module.exports = router;

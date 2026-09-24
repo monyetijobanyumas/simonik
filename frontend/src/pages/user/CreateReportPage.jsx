@@ -1,11 +1,11 @@
 // ============================================================
-// SIMONIK - Create Report Page
+// SIMONIK - Create Report Page (Step 2)
 // File: src/pages/user/CreateReportPage.jsx
-// Deskripsi: Halaman buat laporan dengan peta & GPS
+// Deskripsi: Form detail laporan (step 2 dari 2)
 // ============================================================
 
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   MapContainer,
   TileLayer,
@@ -15,24 +15,30 @@ import {
 } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../../api/axios';
-import { useAuth } from '../../contexts/AuthContext';
 
-// Fix ikon marker Leaflet (Vite bundler issue)
+// Fix ikon marker Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl:
-    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
+
+// Mapping scope → info
+const SCOPE_INFO = {
+  jalan: { label: 'Jalan', icon: '🛣️' },
+  lampu: { label: 'Lampu Penerangan Jalan', icon: '💡' },
+  drainase: { label: 'Drainase', icon: '🚰' },
+};
+
+const VALID_SCOPES = ['jalan', 'lampu', 'drainase'];
 
 // Default center: Purwokerto
 const DEFAULT_CENTER = [-7.4234, 109.2345];
 const DEFAULT_ZOOM = 15;
 
 // ============================================================
-// Komponen: handle klik peta
+// Komponen: klik peta untuk pindah marker
 // ============================================================
 function LocationMarker({ position, setPosition }) {
   useMapEvents({
@@ -40,7 +46,6 @@ function LocationMarker({ position, setPosition }) {
       setPosition([e.latlng.lat, e.latlng.lng]);
     },
   });
-
   return position ? <Marker position={position} /> : null;
 }
 
@@ -62,9 +67,20 @@ function MapController({ position }) {
 // ============================================================
 export default function CreateReportPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
 
-  const [scope, setScope] = useState('jalan');
+  // Ambil scope dari URL
+  const scopeParam = searchParams.get('scope');
+  const scopeInfo = SCOPE_INFO[scopeParam];
+
+  // Validasi scope — kalau tidak valid, redirect ke halaman pilih jenis
+  useEffect(() => {
+    if (!scopeParam || !VALID_SCOPES.includes(scopeParam)) {
+      navigate('/user/report-type', { replace: true });
+    }
+    // eslint-disable-next-line
+  }, [scopeParam]);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [position, setPosition] = useState(DEFAULT_CENTER);
@@ -73,10 +89,11 @@ export default function CreateReportPage() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsStatus, setGpsStatus] = useState('');
 
+  // Ambil GPS otomatis saat halaman dibuka
   useEffect(() => {
-    handleGetLocation();
+    if (scopeInfo) handleGetLocation();
     // eslint-disable-next-line
-  }, []);
+  }, [scopeInfo]);
 
   function handleGetLocation() {
     if (!navigator.geolocation) {
@@ -122,7 +139,7 @@ export default function CreateReportPage() {
 
     try {
       await api.post('/reports', {
-        scope,
+        scope: scopeParam,
         title,
         description,
         latitude: position[0],
@@ -130,7 +147,7 @@ export default function CreateReportPage() {
       });
 
       alert('Laporan berhasil dikirim!');
-      navigate('/user/dashboard');
+      navigate('/user/my-reports');
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal mengirim laporan.');
     } finally {
@@ -138,36 +155,43 @@ export default function CreateReportPage() {
     }
   }
 
+  // Kalau scope tidak valid, jangan render apa-apa (tunggu redirect)
+  if (!scopeInfo) return null;
+
   return (
     <div style={styles.container}>
+      {/* Header dengan tombol ganti jenis */}
       <div style={styles.header}>
         <Link
-          to="/user/dashboard"
+          to="/user/report-type"
           style={styles.backLink}
           onMouseEnter={(e) => (e.target.style.color = '#1a5490')}
           onMouseLeave={(e) => (e.target.style.color = '#0b3d6b')}
         >
-          ← Kembali
+          ← Ganti Jenis Infrastruktur
         </Link>
+
         <h1 style={styles.title}>Buat Laporan Baru</h1>
         <p style={styles.subtitle}>
-          Laporkan masalah infrastruktur di sekitar Anda
+          Lengkapi detail laporan Anda
         </p>
+
+        {/* Step Indicator */}
+        <div style={styles.stepIndicator}>
+          <div style={styles.stepDotDone} />
+          <div style={styles.stepDotActive} />
+          <span style={styles.stepLabel}>Tahap 2 dari 2</span>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} style={styles.form}>
-        {/* Jenis Infrastruktur */}
-        <div style={styles.field}>
-          <label style={styles.label}>Jenis Infrastruktur</label>
-          <select
-            value={scope}
-            onChange={(e) => setScope(e.target.value)}
-            style={styles.select}
-          >
-            <option value="jalan">Jalan</option>
-            <option value="lampu">Lampu Penerangan Jalan</option>
-            <option value="drainase">Drainase</option>
-          </select>
+        {/* Card: Info Jenis yang Dipilih */}
+        <div style={styles.selectedTypeCard}>
+          <div style={styles.selectedTypeIcon}>{scopeInfo.icon}</div>
+          <div style={styles.selectedTypeContent}>
+            <p style={styles.selectedTypeLabel}>Jenis Infrastruktur</p>
+            <p style={styles.selectedTypeValue}>{scopeInfo.label}</p>
+          </div>
         </div>
 
         {/* Judul */}
@@ -225,11 +249,7 @@ export default function CreateReportPage() {
           </div>
 
           <div style={styles.mapWrapper}>
-            <MapContainer
-              center={position}
-              zoom={DEFAULT_ZOOM}
-              style={styles.map}
-            >
+            <MapContainer center={position} zoom={DEFAULT_ZOOM} style={styles.map}>
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -260,8 +280,7 @@ export default function CreateReportPage() {
             if (!loading) {
               e.target.style.background = '#1a5490';
               e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow =
-                '0 6px 20px rgba(11, 61, 107, 0.4)';
+              e.target.style.boxShadow = '0 6px 20px rgba(11, 61, 107, 0.4)';
             }
           }}
           onMouseLeave={(e) => {
@@ -302,14 +321,70 @@ const styles = {
     fontSize: '24px',
   },
   subtitle: {
-    margin: '4px 0 0',
+    margin: '4px 0 16px',
     color: '#666',
     fontSize: '14px',
+  },
+  // Step indicator
+  stepIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  stepDotDone: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: '#0b3d6b',
+  },
+  stepDotActive: {
+    width: '24px',
+    height: '8px',
+    borderRadius: '4px',
+    background: '#0b3d6b',
+  },
+  stepLabel: {
+    marginLeft: '10px',
+    fontSize: '12px',
+    color: '#888',
+    fontStyle: 'italic',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
+  },
+  // Selected type card
+  selectedTypeCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '14px',
+    padding: '16px 20px',
+    background: '#f0f7ff',
+    border: '1px solid #cce0f5',
+    borderRadius: '8px',
+  },
+  selectedTypeIcon: {
+    fontSize: '32px',
+  },
+  selectedTypeContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+  },
+  selectedTypeLabel: {
+    margin: 0,
+    fontSize: '11px',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    fontWeight: 600,
+  },
+  selectedTypeValue: {
+    margin: 0,
+    fontSize: '15px',
+    color: '#0b3d6b',
+    fontWeight: 700,
   },
   field: {
     display: 'flex',
@@ -330,16 +405,6 @@ const styles = {
     fontFamily: 'inherit',
     transition: 'border-color 0.2s ease',
   },
-  select: {
-    padding: '10px 12px',
-    fontSize: '14px',
-    border: '1px solid #ccc',
-    borderRadius: '6px',
-    outline: 'none',
-    fontFamily: 'inherit',
-    background: '#fff',
-    transition: 'border-color 0.2s ease',
-  },
   textarea: {
     padding: '10px 12px',
     fontSize: '14px',
@@ -355,6 +420,7 @@ const styles = {
     alignItems: 'center',
     gap: '12px',
     marginBottom: '8px',
+    flexWrap: 'wrap',
   },
   gpsButton: {
     padding: '8px 16px',
