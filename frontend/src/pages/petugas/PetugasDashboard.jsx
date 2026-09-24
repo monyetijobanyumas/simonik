@@ -1,7 +1,7 @@
 // ============================================================
 // SIMONIK - Petugas Dashboard
 // File: src/pages/petugas/PetugasDashboard.jsx
-// Deskripsi: Dashboard petugas - laporan per-scope
+// Deskripsi: Dashboard petugas - laporan per-scope + tombol peta
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -10,14 +10,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api/axios';
 import ReportCard from '../../components/ReportCard';
 
-// Scope → label & ikon
 const SCOPE_INFO = {
   jalan: { label: 'Jalan', icon: '🛣️' },
   lampu: { label: 'Lampu Penerangan', icon: '💡' },
   drainase: { label: 'Drainase', icon: '🚰' },
 };
 
-// Tab filter
 const TABS = [
   { key: 'ALL', label: 'Semua' },
   { key: 'DIAJUKAN', label: 'Diajukan' },
@@ -58,19 +56,16 @@ export default function PetugasDashboard() {
     navigate(`/petugas/report/${reportId}`);
   }
 
-  // Filter berdasarkan tab aktif
   const filteredReports =
     activeTab === 'ALL'
       ? reports
       : reports.filter((r) => r.status === activeTab);
 
-  // Hitung jumlah per status (untuk badge di tab)
   function countByStatus(status) {
     if (status === 'ALL') return reports.length;
     return reports.filter((r) => r.status === status).length;
   }
 
-  // Scope user (array)
   const userScopes = user?.scopes || [];
 
   return (
@@ -93,14 +88,30 @@ export default function PetugasDashboard() {
             })}
           </div>
         </div>
-        <button
-          onClick={logout}
-          style={styles.logoutBtn}
-          onMouseEnter={(e) => (e.target.style.background = '#fff5f5')}
-          onMouseLeave={(e) => (e.target.style.background = '#fff')}
-        >
-          Logout
-        </button>
+        <div style={styles.headerActions}>
+          <button
+            onClick={() => navigate('/petugas/map')}
+            style={styles.mapBtn}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#0b3d6b';
+              e.target.style.color = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = '#fff';
+              e.target.style.color = '#0b3d6b';
+            }}
+          >
+            🗺️ Peta Laporan
+          </button>
+          <button
+            onClick={logout}
+            style={styles.logoutBtn}
+            onMouseEnter={(e) => (e.target.style.background = '#fff5f5')}
+            onMouseLeave={(e) => (e.target.style.background = '#fff')}
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Tab Filter */}
@@ -141,7 +152,10 @@ export default function PetugasDashboard() {
       <div style={styles.section}>
         <div style={styles.sectionHeader}>
           <h2 style={styles.sectionTitle}>
-            Laporan {activeTab !== 'ALL' ? TABS.find((t) => t.key === activeTab).label : ''}
+            Laporan{' '}
+            {activeTab !== 'ALL'
+              ? TABS.find((t) => t.key === activeTab).label
+              : ''}
             {!loading && filteredReports.length > 0 && (
               <span style={styles.countBadge}>{filteredReports.length}</span>
             )}
@@ -156,14 +170,12 @@ export default function PetugasDashboard() {
           </button>
         </div>
 
-        {/* Loading */}
         {loading && (
           <div style={styles.stateBox}>
             <p style={styles.stateText}>Memuat laporan...</p>
           </div>
         )}
 
-        {/* Error */}
         {error && !loading && (
           <div style={styles.errorBox}>
             <p style={styles.errorText}>⚠️ {error}</p>
@@ -173,14 +185,15 @@ export default function PetugasDashboard() {
           </div>
         )}
 
-        {/* Empty State */}
         {!loading && !error && filteredReports.length === 0 && (
           <div style={styles.emptyBox}>
             <div style={styles.emptyIcon}>📭</div>
             <p style={styles.emptyTitle}>
               {activeTab === 'ALL'
                 ? 'Belum ada laporan di scope Anda'
-                : `Tidak ada laporan dengan status ${TABS.find((t) => t.key === activeTab)?.label}`}
+                : `Tidak ada laporan dengan status ${
+                    TABS.find((t) => t.key === activeTab)?.label
+                  }`}
             </p>
             <p style={styles.emptyText}>
               {activeTab === 'ALL'
@@ -190,7 +203,6 @@ export default function PetugasDashboard() {
           </div>
         )}
 
-        {/* List */}
         {!loading && !error && filteredReports.length > 0 && (
           <div>
             {filteredReports.map((report) => (
@@ -220,6 +232,7 @@ const styles = {
     alignItems: 'flex-start',
     marginBottom: '24px',
     gap: '16px',
+    flexWrap: 'wrap',
   },
   title: {
     margin: 0,
@@ -245,6 +258,23 @@ const styles = {
     fontSize: '11px',
     fontWeight: 600,
   },
+  headerActions: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  mapBtn: {
+    padding: '8px 16px',
+    background: '#fff',
+    color: '#0b3d6b',
+    border: '1px solid #0b3d6b',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 600,
+    transition: 'background 0.2s ease, color 0.2s ease',
+  },
   logoutBtn: {
     padding: '8px 16px',
     background: '#fff',
@@ -255,7 +285,6 @@ const styles = {
     fontSize: '13px',
     fontWeight: 600,
     transition: 'background 0.2s ease',
-    flexShrink: 0,
   },
   tabsWrapper: {
     display: 'flex',

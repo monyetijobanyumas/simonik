@@ -11,8 +11,10 @@ import ReportTypePage from '../pages/user/ReportTypePage';
 import CreateReportPage from '../pages/user/CreateReportPage';
 import MyReportsPage from '../pages/user/MyReportsPage';
 import ReportDetailPage from '../pages/user/ReportDetailPage';
+import MapReportsPage from '../pages/user/MapReportsPage';
 import PetugasDashboard from '../pages/petugas/PetugasDashboard';
 import ReportDetailPetugasPage from '../pages/petugas/ReportDetailPetugasPage';
+import MapReportsPetugasPage from '../pages/petugas/MapReportsPetugasPage';
 
 function ProtectedRoute({ children, allowedRole }) {
   const { user, loading } = useAuth();
@@ -81,6 +83,14 @@ export default function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/user/map"
+          element={
+            <ProtectedRoute allowedRole="user">
+              <MapReportsPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Petugas */}
         <Route
@@ -96,6 +106,14 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute allowedRole="petugas">
               <ReportDetailPetugasPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/petugas/map"
+          element={
+            <ProtectedRoute allowedRole="petugas">
+              <MapReportsPetugasPage />
             </ProtectedRoute>
           }
         />

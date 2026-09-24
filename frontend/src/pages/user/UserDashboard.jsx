@@ -1,7 +1,7 @@
 // ============================================================
 // SIMONIK - User Dashboard
 // File: src/pages/user/UserDashboard.jsx
-// Deskripsi: Landing page user dengan 2 tombol besar
+// Deskripsi: Landing page user dengan 3 tombol utama
 // ============================================================
 
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,27 @@ import { useAuth } from '../../contexts/AuthContext';
 export default function UserDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const MENU = [
+    {
+      icon: '📝',
+      title: 'Buat Laporan Baru',
+      desc: 'Laporkan masalah infrastruktur di sekitar Anda',
+      path: '/user/report-type',
+    },
+    {
+      icon: '📋',
+      title: 'Laporan Saya',
+      desc: 'Lihat daftar dan status laporan Anda',
+      path: '/user/my-reports',
+    },
+    {
+      icon: '🗺️',
+      title: 'Peta Laporan',
+      desc: 'Lihat persebaran laporan di peta',
+      path: '/user/map',
+    },
+  ];
 
   return (
     <div style={styles.container}>
@@ -31,51 +52,30 @@ export default function UserDashboard() {
         </button>
       </div>
 
-      {/* Dua Tombol Besar */}
+      {/* Menu Cards */}
       <div style={styles.menuGrid}>
-        {/* Tombol Buat Laporan */}
-        <button
-          onClick={() => navigate('/user/report-type')}
-          style={styles.menuCard}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#0b3d6b';
-            e.currentTarget.style.transform = 'translateY(-4px)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(11, 61, 107, 0.15)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = '#e5e5e5';
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-          }}
-        >
-          <div style={styles.menuIcon}>📝</div>
-          <h2 style={styles.menuTitle}>Buat Laporan Baru</h2>
-          <p style={styles.menuDesc}>
-            Laporkan masalah infrastruktur di sekitar Anda
-          </p>
-        </button>
-
-        {/* Tombol Laporan Saya */}
-        <button
-          onClick={() => navigate('/user/my-reports')}
-          style={styles.menuCard}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#0b3d6b';
-            e.currentTarget.style.transform = 'translateY(-4px)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(11, 61, 107, 0.15)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = '#e5e5e5';
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-          }}
-        >
-          <div style={styles.menuIcon}>📋</div>
-          <h2 style={styles.menuTitle}>Laporan Saya</h2>
-          <p style={styles.menuDesc}>
-            Lihat daftar dan status laporan Anda
-          </p>
-        </button>
+        {MENU.map((item) => (
+          <button
+            key={item.path}
+            onClick={() => navigate(item.path)}
+            style={styles.menuCard}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#0b3d6b';
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow =
+                '0 8px 24px rgba(11, 61, 107, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e5e5e5';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+            }}
+          >
+            <div style={styles.menuIcon}>{item.icon}</div>
+            <h2 style={styles.menuTitle}>{item.title}</h2>
+            <p style={styles.menuDesc}>{item.desc}</p>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -94,16 +94,8 @@ const styles = {
     alignItems: 'center',
     marginBottom: '40px',
   },
-  title: {
-    margin: 0,
-    color: '#0b3d6b',
-    fontSize: '24px',
-  },
-  subtitle: {
-    margin: '4px 0 0',
-    color: '#666',
-    fontSize: '14px',
-  },
+  title: { margin: 0, color: '#0b3d6b', fontSize: '24px' },
+  subtitle: { margin: '4px 0 0', color: '#666', fontSize: '14px' },
   logoutBtn: {
     padding: '8px 16px',
     background: '#fff',
@@ -117,7 +109,7 @@ const styles = {
   },
   menuGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
     gap: '20px',
   },
   menuCard: {
@@ -127,24 +119,17 @@ const styles = {
     padding: '32px 24px',
     textAlign: 'center',
     cursor: 'pointer',
-    transition: 'border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease',
+    transition:
+      'border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease',
     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
     fontFamily: 'inherit',
   },
-  menuIcon: {
-    fontSize: '48px',
-    marginBottom: '16px',
-  },
+  menuIcon: { fontSize: '48px', marginBottom: '16px' },
   menuTitle: {
     margin: '0 0 8px',
     color: '#0b3d6b',
     fontSize: '18px',
     fontWeight: 700,
   },
-  menuDesc: {
-    margin: 0,
-    color: '#666',
-    fontSize: '13px',
-    lineHeight: 1.5,
-  },
+  menuDesc: { margin: 0, color: '#666', fontSize: '13px', lineHeight: 1.5 },
 };
