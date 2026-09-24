@@ -8,17 +8,13 @@ const db = require('../../config/db');
 
 /**
  * Buat laporan baru
- * @param {object} data - { user_id, scope, title, description, latitude, longitude }
- * @returns {object} - Laporan yang baru dibuat
  */
 async function createReport({ user_id, scope, title, description, latitude, longitude }) {
-  // Validasi scope
   const validScopes = ['jalan', 'lampu', 'drainase'];
   if (!validScopes.includes(scope)) {
     throw new Error('Jenis infrastruktur tidak valid');
   }
 
-  // Insert laporan + simpan koordinat sebagai PostGIS geography
   const query = `
     INSERT INTO reports (user_id, scope, title, description, status, location, created_at, updated_at)
     VALUES ($1, $2, $3, $4, 'DIAJUKAN', ST_GeogFromText($5), NOW(), NOW())
@@ -34,7 +30,6 @@ async function createReport({ user_id, scope, title, description, latitude, long
   const result = await db.query(query, values);
   const report = result.rows[0];
 
-  // Catat riwayat status awal: DIAJUKAN
   await db.query(
     `INSERT INTO report_status_history (report_id, status, note, changed_by, changed_at)
      VALUES ($1, 'DIAJUKAN', 'Laporan dibuat oleh user', $2, NOW())`,
@@ -46,15 +41,12 @@ async function createReport({ user_id, scope, title, description, latitude, long
 
 /**
  * Ambil daftar laporan sesuai role
- * - user: hanya laporan miliknya sendiri
- * - petugas: hanya laporan dengan scope yang dimilikinya
  */
 async function getReports(user) {
   let query;
   let values;
 
   if (user.role === 'petugas') {
-    // Ambil scope dari token JWT (sudah diisi di auth.service)
     query = `
       SELECT r.id, r.user_id, r.scope, r.title, r.description, r.status,
              ST_Y(r.location::geometry) AS latitude,
@@ -68,7 +60,6 @@ async function getReports(user) {
     `;
     values = [user.scopes];
   } else {
-    // User: hanya lihat laporan sendiri
     query = `
       SELECT r.id, r.user_id, r.scope, r.title, r.description, r.status,
              ST_Y(r.location::geometry) AS latitude,
@@ -86,7 +77,7 @@ async function getReports(user) {
 }
 
 /**
- * Ambil detail laporan berdasarkan ID (dengan validasi akses)
+ * Ambil detail laporan berdasarkan ID
  */
 async function getReportById(id, user) {
   const query = `
@@ -108,7 +99,6 @@ async function getReportById(id, user) {
 
   const report = result.rows[0];
 
-  // Validasi akses
   if (user.role === 'user' && report.user_id !== user.id) {
     throw new Error('Anda tidak berhak mengakses laporan ini');
   }
@@ -126,10 +116,7 @@ async function getReportById(id, user) {
 async function getReportHistory(reportId) {
   const query = `
     SELECT 
-      rsh.id,
-      rsh.status,
-      rsh.note,
-      rsh.changed_at,
+      rsh.id, rsh.status, rsh.note, rsh.changed_at,
       u.name AS changed_by_name,
       u.role AS changed_by_role
     FROM report_status_history rsh
@@ -142,15 +129,8 @@ async function getReportHistory(reportId) {
   return result.rows;
 }
 
-// ============================================================
-// VALIDASI TRANSISI STATUS
-// ============================================================
-
 /**
- * Cek apakah transisi status valid
- * @param {string} fromStatus - Status saat ini
- * @param {string} toStatus - Status tujuan
- * @returns {boolean}
+ * Cek validitas transisi status
  */
 function isValidTransition(fromStatus, toStatus) {
   const transitions = {
@@ -164,56 +144,32 @@ function isValidTransition(fromStatus, toStatus) {
   return transitions[fromStatus]?.includes(toStatus) || false;
 }
 
-// ============================================================
-// UPDATE STATUS LAPORAN
-// ============================================================
-
 /**
- * Update status laporan oleh petugas
- * @param {number} reportId - ID laporan
- * @param {string} newStatus - Status baru
- * @param {string} note - Catatan (opsional)
- * @param {object} user - User dari token (petugas)
- * @returns {object} - Laporan yang sudah diupdate
+ * Update status laporan
  */
 async function updateReportStatus(reportId, newStatus, note, user) {
-  // 1. Cek laporan ada & akses
   const report = await getReportById(reportId, user);
 
-  // 2. Validasi transisi status
   if (!isValidTransition(report.status, newStatus)) {
-    throw new Error(
-      `Status tidak valid: ${report.status} → ${newStatus}`
-    );
+    throw new Error(`Status tidak valid: ${report.status} → ${newStatus}`);
   }
 
-  // 3. Update status laporan
-  const updateQuery = `
-    UPDATE reports 
-    SET status = $1, updated_at = NOW() 
-    WHERE id = $2 
-    RETURNING id, status, updated_at
-  `;
-  await db.query(updateQuery, [newStatus, reportId]);
+  await db.query(
+    `UPDATE reports SET status = $1, updated_at = NOW() WHERE id = $2`,
+    [newStatus, reportId]
+  );
 
-  // 4. Catat history
   await db.query(
     `INSERT INTO report_status_history (report_id, status, note, changed_by, changed_at)
      VALUES ($1, $2, $3, $4, NOW())`,
     [reportId, newStatus, note || null, user.id]
   );
 
-  // 5. Ambil laporan terbaru
-  const updated = await getReportById(reportId, user);
-  return updated;
+  return await getReportById(reportId, user);
 }
 
-// ============================================================
-// ATTACHMENTS — Foto/Bukti
-// ============================================================
-
 /**
- * Simpan metadata attachment ke database
+ * Simpan metadata attachment
  */
 async function addAttachment({ report_id, file_url, type, uploaded_by }) {
   const query = `
@@ -232,11 +188,7 @@ async function addAttachment({ report_id, file_url, type, uploaded_by }) {
 async function getAttachments(reportId) {
   const query = `
     SELECT 
-      ra.id,
-      ra.report_id,
-      ra.file_url,
-      ra.type,
-      ra.uploaded_at,
+      ra.id, ra.report_id, ra.file_url, ra.type, ra.uploaded_at,
       u.name AS uploaded_by_name,
       u.role AS uploaded_by_role
     FROM report_attachments ra
@@ -249,6 +201,19 @@ async function getAttachments(reportId) {
   return result.rows;
 }
 
+/**
+ * Hitung jumlah attachment untuk laporan berdasarkan tipe
+ */
+async function countAttachments(reportId, type) {
+  const query = `
+    SELECT COUNT(*)::int AS total
+    FROM report_attachments
+    WHERE report_id = $1 AND type = $2
+  `;
+  const result = await db.query(query, [reportId, type]);
+  return result.rows[0].total;
+}
+
 module.exports = {
   createReport,
   getReports,
@@ -258,4 +223,5 @@ module.exports = {
   isValidTransition,
   addAttachment,
   getAttachments,
+  countAttachments,
 };

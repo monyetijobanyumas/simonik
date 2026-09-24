@@ -1,7 +1,7 @@
 // ============================================================
 // SIMONIK - Report Detail Petugas Page
 // File: src/pages/petugas/ReportDetailPetugasPage.jsx
-// Deskripsi: Halaman detail laporan petugas + foto + tombol aksi
+// Deskripsi: Detail laporan petugas + foto + upload bukti (maks 3) + aksi
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -11,7 +11,6 @@ import L from 'leaflet';
 import api from '../../api/axios';
 import { formatFullDate, formatRelativeTime } from '../../utils/formatDate';
 
-// Fix ikon marker Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -77,7 +76,10 @@ const STATUS_ACTIONS = {
   DITOLAK: [],
 };
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_BUKTI = 3;
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+const CAN_UPLOAD_BUKTI = ['DIPROSES', 'SELESAI'];
 
 export default function ReportDetailPetugasPage() {
   const { id } = useParams();
@@ -88,6 +90,12 @@ export default function ReportDetailPetugasPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modal, setModal] = useState(null);
+
+  const [buktiFile, setBuktiFile] = useState(null);
+  const [buktiPreview, setBuktiPreview] = useState(null);
+  const [uploadingBukti, setUploadingBukti] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -147,6 +155,64 @@ export default function ReportDetailPetugasPage() {
     }
   }
 
+  function handleBuktiChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Hanya file JPG, PNG, atau WEBP yang diizinkan.');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError('Ukuran file maksimal 5MB.');
+      e.target.value = '';
+      return;
+    }
+
+    setUploadError('');
+    setUploadSuccess('');
+    setBuktiFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => setBuktiPreview(reader.result);
+    reader.readAsDataURL(file);
+  }
+
+  function handleRemoveBukti() {
+    setBuktiFile(null);
+    setBuktiPreview(null);
+    const input = document.getElementById('bukti-input');
+    if (input) input.value = '';
+  }
+
+  async function handleUploadBukti() {
+    if (!buktiFile) return;
+
+    setUploadingBukti(true);
+    setUploadError('');
+    setUploadSuccess('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', buktiFile);
+
+      await api.post(`/reports/${id}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setUploadSuccess('Bukti berhasil diunggah!');
+      handleRemoveBukti();
+      await fetchData();
+    } catch (err) {
+      setUploadError(err.response?.data?.message || 'Gagal mengunggah bukti.');
+    } finally {
+      setUploadingBukti(false);
+    }
+  }
+
   if (loading) {
     return (
       <div style={styles.container}>
@@ -178,6 +244,11 @@ export default function ReportDetailPetugasPage() {
   };
   const position = [Number(report.latitude), Number(report.longitude)];
   const actions = STATUS_ACTIONS[report.status] || [];
+  const canUploadBukti = CAN_UPLOAD_BUKTI.includes(report.status);
+
+  const fotoLaporan = attachments.filter((a) => a.type === 'laporan');
+  const fotoBukti = attachments.filter((a) => a.type === 'bukti');
+  const buktiPenuh = fotoBukti.length >= MAX_BUKTI;
 
   return (
     <div style={styles.container}>
@@ -223,12 +294,14 @@ export default function ReportDetailPetugasPage() {
         <p style={styles.description}>{report.description}</p>
       </div>
 
-      {/* Card: Foto */}
-      {attachments.length > 0 && (
+      {/* Card: Foto Laporan */}
+      {fotoLaporan.length > 0 && (
         <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>Foto ({attachments.length})</h2>
+          <h2 style={styles.sectionTitle}>
+            Foto Laporan ({fotoLaporan.length})
+          </h2>
           <div style={styles.photoGrid}>
-            {attachments.map((att) => (
+            {fotoLaporan.map((att) => (
               <a
                 key={att.id}
                 href={`${API_BASE}${att.file_url}`}
@@ -242,12 +315,128 @@ export default function ReportDetailPetugasPage() {
                   style={styles.photoImg}
                   loading="lazy"
                 />
-                <span style={styles.photoType}>
-                  {att.type === 'bukti' ? '✓ Bukti' : '📷 Laporan'}
+                <span style={styles.photoType}>📷 Laporan</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Card: Bukti Penyelesaian */}
+      {fotoBukti.length > 0 && (
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>
+            ✓ Bukti Penyelesaian ({fotoBukti.length})
+          </h2>
+          <div style={styles.photoGrid}>
+            {fotoBukti.map((att) => (
+              <a
+                key={att.id}
+                href={`${API_BASE}${att.file_url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={styles.photoItem}
+              >
+                <img
+                  src={`${API_BASE}${att.file_url}`}
+                  alt="Bukti penyelesaian"
+                  style={styles.photoImg}
+                  loading="lazy"
+                />
+                <span
+                  style={{
+                    ...styles.photoType,
+                    background: 'rgba(39, 174, 96, 0.85)',
+                  }}
+                >
+                  ✓ Bukti
                 </span>
               </a>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Card: Upload Bukti */}
+      {canUploadBukti && (
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>
+            Upload Bukti Penyelesaian ({fotoBukti.length}/{MAX_BUKTI})
+          </h2>
+
+          <div style={styles.photoNote}>
+            📸 Maksimal {MAX_BUKTI} foto bukti. Pastikan pencahayaan jelas agar foto terbaca.
+          </div>
+
+          <p style={styles.uploadBuktiHint}>
+            Unggah foto kondisi setelah diperbaiki sebagai bukti penyelesaian.
+          </p>
+
+          {buktiPenuh ? (
+            <div style={styles.photoLimitBox}>
+              ✅ Batas maksimal {MAX_BUKTI} foto bukti sudah tercapai.
+            </div>
+          ) : (
+            <>
+              {!buktiPreview ? (
+                <div style={styles.uploadBox}>
+                  <input
+                    id="bukti-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBuktiChange}
+                    style={styles.fileInput}
+                  />
+                  <label htmlFor="bukti-input" style={styles.uploadLabel}>
+                    <div style={styles.uploadIcon}>📷</div>
+                    <p style={styles.uploadText}>
+                      Klik untuk pilih foto bukti ({MAX_BUKTI - fotoBukti.length} slot tersisa)
+                    </p>
+                    <p style={styles.uploadHint}>
+                      Format: JPG, PNG, WEBP · Maks 5MB per foto
+                    </p>
+                  </label>
+                </div>
+              ) : (
+                <div>
+                  <div style={styles.previewBox}>
+                    <img src={buktiPreview} alt="Preview" style={styles.previewImg} />
+                    <button
+                      type="button"
+                      onClick={handleRemoveBukti}
+                      style={styles.removePhotoBtn}
+                      onMouseEnter={(e) => (e.target.style.background = '#c0392b')}
+                      onMouseLeave={(e) => (e.target.style.background = '#e74c3c')}
+                    >
+                      ✗ Hapus
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleUploadBukti}
+                    disabled={uploadingBukti}
+                    style={styles.uploadSubmitBtn}
+                    onMouseEnter={(e) => {
+                      if (!uploadingBukti) {
+                        e.target.style.background = '#1a5490';
+                        e.target.style.transform = 'translateY(-2px)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = '#0b3d6b';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    {uploadingBukti ? 'Mengunggah...' : '⬆ Upload Bukti'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {uploadError && <div style={styles.uploadError}>{uploadError}</div>}
+          {uploadSuccess && <div style={styles.uploadSuccess}>{uploadSuccess}</div>}
         </div>
       )}
 
@@ -498,7 +687,6 @@ const styles = {
     border: '1px solid #e5e5e5',
   },
   map: { height: '100%', width: '100%' },
-  // Foto
   photoGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
@@ -530,6 +718,116 @@ const styles = {
     fontWeight: 700,
     borderRadius: '10px',
   },
+  photoNote: {
+    padding: '8px 12px',
+    background: '#fffbea',
+    border: '1px solid #ffeaa7',
+    borderRadius: '6px',
+    fontSize: '12px',
+    color: '#856404',
+    lineHeight: 1.5,
+    marginBottom: '10px',
+  },
+  photoLimitBox: {
+    padding: '12px 16px',
+    background: '#eafaf1',
+    border: '1px solid #b8e6c9',
+    borderRadius: '6px',
+    fontSize: '12px',
+    color: '#27ae60',
+    fontWeight: 600,
+    textAlign: 'center',
+  },
+  uploadBuktiHint: {
+    margin: '0 0 12px',
+    color: '#666',
+    fontSize: '13px',
+    lineHeight: 1.5,
+  },
+  uploadBox: { position: 'relative' },
+  fileInput: {
+    position: 'absolute',
+    width: '1px',
+    height: '1px',
+    opacity: 0,
+    overflow: 'hidden',
+  },
+  uploadLabel: {
+    display: 'block',
+    padding: '24px 20px',
+    background: '#fafbfc',
+    border: '2px dashed #ccc',
+    borderRadius: '8px',
+    textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'border-color 0.2s ease, background 0.2s ease',
+  },
+  uploadIcon: { fontSize: '28px', marginBottom: '6px' },
+  uploadText: {
+    margin: '0 0 4px',
+    color: '#0b3d6b',
+    fontSize: '13px',
+    fontWeight: 600,
+  },
+  uploadHint: { margin: 0, color: '#888', fontSize: '11px' },
+  previewBox: {
+    position: 'relative',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    border: '1px solid #e5e5e5',
+    marginBottom: '12px',
+  },
+  previewImg: {
+    display: 'block',
+    width: '100%',
+    maxHeight: '250px',
+    objectFit: 'cover',
+  },
+  removePhotoBtn: {
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    padding: '6px 12px',
+    background: '#e74c3c',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: 600,
+    transition: 'background 0.2s ease',
+  },
+  uploadSubmitBtn: {
+    width: '100%',
+    padding: '12px',
+    background: '#0b3d6b',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 600,
+    transition: 'background 0.2s ease, transform 0.2s ease',
+  },
+  uploadError: {
+    marginTop: '12px',
+    padding: '10px 12px',
+    background: '#fff5f5',
+    color: '#c0392b',
+    border: '1px solid #f5c6cb',
+    borderRadius: '6px',
+    fontSize: '12px',
+  },
+  uploadSuccess: {
+    marginTop: '12px',
+    padding: '10px 12px',
+    background: '#eafaf1',
+    color: '#27ae60',
+    border: '1px solid #b8e6c9',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: 600,
+  },
   stateBox: {
     padding: '60px 20px',
     textAlign: 'center',
@@ -544,7 +842,6 @@ const styles = {
     textAlign: 'center',
   },
   errorText: { margin: 0, color: '#c0392b', fontSize: '14px' },
-  // Timeline
   timeline: { display: 'flex', flexDirection: 'column' },
   timelineItem: { display: 'flex', gap: '16px', minHeight: '60px' },
   timelineLeft: {
@@ -590,7 +887,6 @@ const styles = {
     lineHeight: 1.5,
   },
   timelineBy: { margin: '4px 0 0', color: '#888', fontSize: '11px' },
-  // Aksi
   actionsRow: { display: 'flex', gap: '12px', flexWrap: 'wrap' },
   actionBtn: {
     padding: '12px 20px',
@@ -615,7 +911,6 @@ const styles = {
     fontSize: '14px',
     fontWeight: 600,
   },
-  // Modal
   modalOverlay: {
     position: 'fixed',
     top: 0,
@@ -644,7 +939,12 @@ const styles = {
     fontSize: '13px',
     lineHeight: 1.5,
   },
-  modalField: { display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' },
+  modalField: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    marginBottom: '16px',
+  },
   modalLabel: { fontSize: '13px', fontWeight: 600, color: '#333' },
   modalTextarea: {
     padding: '10px 12px',

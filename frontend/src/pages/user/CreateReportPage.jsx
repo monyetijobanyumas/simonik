@@ -1,7 +1,7 @@
 // ============================================================
 // SIMONIK - Create Report Page (Step 2)
 // File: src/pages/user/CreateReportPage.jsx
-// Deskripsi: Form detail laporan + upload foto
+// Deskripsi: Form detail laporan + upload foto (maks 3)
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -16,7 +16,6 @@ import {
 import L from 'leaflet';
 import api from '../../api/axios';
 
-// Fix ikon marker Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -33,9 +32,9 @@ const SCOPE_INFO = {
 const VALID_SCOPES = ['jalan', 'lampu', 'drainase'];
 const DEFAULT_CENTER = [-7.4234, 109.2345];
 const DEFAULT_ZOOM = 15;
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_PHOTOS = 3;
 
-// Komponen: klik peta untuk pindah marker
 function LocationMarker({ position, setPosition }) {
   useMapEvents({
     click(e) {
@@ -45,7 +44,6 @@ function LocationMarker({ position, setPosition }) {
   return position ? <Marker position={position} /> : null;
 }
 
-// Komponen: pindahkan peta ke posisi baru
 function MapController({ position }) {
   const map = useMap();
   useEffect(() => {
@@ -61,7 +59,6 @@ export default function CreateReportPage() {
   const scopeParam = searchParams.get('scope');
   const scopeInfo = SCOPE_INFO[scopeParam];
 
-  // Validasi scope
   useEffect(() => {
     if (!scopeParam || !VALID_SCOPES.includes(scopeParam)) {
       navigate('/user/report-type', { replace: true });
@@ -72,14 +69,13 @@ export default function CreateReportPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [position, setPosition] = useState(DEFAULT_CENTER);
-  const [photo, setPhoto] = useState(null); // File object
-  const [photoPreview, setPhotoPreview] = useState(null); // Data URL
+  const [photos, setPhotos] = useState([]);
+  const [previews, setPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsStatus, setGpsStatus] = useState('');
 
-  // Ambil GPS otomatis
   useEffect(() => {
     if (scopeInfo) handleGetLocation();
     // eslint-disable-next-line
@@ -110,41 +106,52 @@ export default function CreateReportPage() {
     );
   }
 
-  // Handler pilih file foto
   function handlePhotoChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    // Validasi tipe
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      setError('Hanya file JPG, PNG, atau WEBP yang diizinkan.');
+    const remaining = MAX_PHOTOS - photos.length;
+    if (files.length > remaining) {
+      setError(
+        `Maksimal ${MAX_PHOTOS} foto. Anda hanya bisa menambah ${remaining} lagi.`
+      );
       e.target.value = '';
       return;
     }
 
-    // Validasi ukuran
-    if (file.size > MAX_FILE_SIZE) {
-      setError('Ukuran file maksimal 5MB.');
-      e.target.value = '';
-      return;
+    const validFiles = [];
+    for (const file of files) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setError(`File "${file.name}" bukan gambar yang didukung.`);
+        e.target.value = '';
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`File "${file.name}" melebihi 5MB.`);
+        e.target.value = '';
+        return;
+      }
+      validFiles.push(file);
     }
 
     setError('');
-    setPhoto(file);
+    setPhotos((prev) => [...prev, ...validFiles]);
 
-    // Preview
-    const reader = new FileReader();
-    reader.onloadend = () => setPhotoPreview(reader.result);
-    reader.readAsDataURL(file);
+    validFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviews((prev) => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = '';
   }
 
-  // Hapus foto yang dipilih
-  function handleRemovePhoto() {
-    setPhoto(null);
-    setPhotoPreview(null);
-    const input = document.getElementById('photo-input');
-    if (input) input.value = '';
+  function handleRemovePhoto(index) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(e) {
@@ -163,7 +170,6 @@ export default function CreateReportPage() {
     setLoading(true);
 
     try {
-      // 1. Buat laporan dulu
       const reportRes = await api.post('/reports', {
         scope: scopeParam,
         title,
@@ -174,15 +180,11 @@ export default function CreateReportPage() {
 
       const reportId = reportRes.data.data.report.id;
 
-      // 2. Kalau ada foto, upload
-      if (photo) {
+      for (const photo of photos) {
         const formData = new FormData();
         formData.append('file', photo);
-
         await api.post(`/reports/${reportId}/attachments`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
 
@@ -197,9 +199,11 @@ export default function CreateReportPage() {
 
   if (!scopeInfo) return null;
 
+  const remaining = MAX_PHOTOS - photos.length;
+  const canAddMore = remaining > 0;
+
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <Link
           to="/user/report-type"
@@ -221,7 +225,6 @@ export default function CreateReportPage() {
       </div>
 
       <form onSubmit={handleSubmit} style={styles.form}>
-        {/* Card: Jenis Terpilih */}
         <div style={styles.selectedTypeCard}>
           <div style={styles.selectedTypeIcon}>{scopeInfo.icon}</div>
           <div style={styles.selectedTypeContent}>
@@ -230,7 +233,6 @@ export default function CreateReportPage() {
           </div>
         </div>
 
-        {/* Judul */}
         <div style={styles.field}>
           <label style={styles.label}>Judul Laporan</label>
           <input
@@ -244,7 +246,6 @@ export default function CreateReportPage() {
           />
         </div>
 
-        {/* Deskripsi */}
         <div style={styles.field}>
           <label style={styles.label}>Deskripsi</label>
           <textarea
@@ -258,41 +259,65 @@ export default function CreateReportPage() {
           />
         </div>
 
-        {/* Foto */}
+        {/* FOTO */}
         <div style={styles.field}>
           <label style={styles.label}>
-            Foto Bukti <span style={styles.optional}>(opsional)</span>
+            Foto Bukti{' '}
+            <span style={styles.counter}>
+              ({photos.length}/{MAX_PHOTOS})
+            </span>
           </label>
 
-          {!photoPreview ? (
+          <div style={styles.photoNote}>
+            📸 Maksimal {MAX_PHOTOS} foto. Pastikan pencahayaan jelas agar foto terbaca.
+          </div>
+
+          {previews.length > 0 && (
+            <div style={styles.photoGrid}>
+              {previews.map((preview, index) => (
+                <div key={index} style={styles.photoItem}>
+                  <img
+                    src={preview}
+                    alt={`Preview ${index + 1}`}
+                    style={styles.photoImg}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(index)}
+                    style={styles.removePhotoBtn}
+                    onMouseEnter={(e) => (e.target.style.background = '#c0392b')}
+                    onMouseLeave={(e) => (e.target.style.background = '#e74c3c')}
+                  >
+                    ✗
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {canAddMore ? (
             <div style={styles.uploadBox}>
               <input
                 id="photo-input"
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handlePhotoChange}
                 style={styles.fileInput}
               />
               <label htmlFor="photo-input" style={styles.uploadLabel}>
                 <div style={styles.uploadIcon}>📷</div>
-                <p style={styles.uploadText}>Klik untuk pilih foto</p>
+                <p style={styles.uploadText}>
+                  Klik untuk pilih foto ({remaining} slot tersisa)
+                </p>
                 <p style={styles.uploadHint}>
-                  Format: JPG, PNG, WEBP · Maks 5MB
+                  Format: JPG, PNG, WEBP · Maks 5MB per foto
                 </p>
               </label>
             </div>
           ) : (
-            <div style={styles.previewBox}>
-              <img src={photoPreview} alt="Preview" style={styles.previewImg} />
-              <button
-                type="button"
-                onClick={handleRemovePhoto}
-                style={styles.removePhotoBtn}
-                onMouseEnter={(e) => (e.target.style.background = '#c0392b')}
-                onMouseLeave={(e) => (e.target.style.background = '#e74c3c')}
-              >
-                ✗ Hapus Foto
-              </button>
+            <div style={styles.photoLimitBox}>
+              ✅ Batas maksimal {MAX_PHOTOS} foto tercapai. Hapus salah satu foto untuk mengganti.
             </div>
           )}
         </div>
@@ -435,7 +460,16 @@ const styles = {
   },
   field: { display: 'flex', flexDirection: 'column', gap: '6px' },
   label: { fontSize: '14px', fontWeight: 600, color: '#333' },
-  optional: { color: '#888', fontWeight: 400, fontStyle: 'italic' },
+  counter: { color: '#0b3d6b', fontWeight: 700 },
+  photoNote: {
+    padding: '8px 12px',
+    background: '#fffbea',
+    border: '1px solid #ffeaa7',
+    borderRadius: '6px',
+    fontSize: '12px',
+    color: '#856404',
+    lineHeight: 1.5,
+  },
   input: {
     padding: '10px 12px',
     fontSize: '14px',
@@ -455,10 +489,44 @@ const styles = {
     resize: 'vertical',
     transition: 'border-color 0.2s ease',
   },
-  // Upload foto
-  uploadBox: {
-    position: 'relative',
+  photoGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+    gap: '8px',
+    marginTop: '10px',
   },
+  photoItem: {
+    position: 'relative',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    aspectRatio: '1 / 1',
+    border: '1px solid #e5e5e5',
+  },
+  photoImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  },
+  removePhotoBtn: {
+    position: 'absolute',
+    top: '6px',
+    right: '6px',
+    width: '24px',
+    height: '24px',
+    background: '#e74c3c',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '50%',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: 700,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background 0.2s ease',
+  },
+  uploadBox: { position: 'relative', marginTop: '10px' },
   fileInput: {
     position: 'absolute',
     width: '1px',
@@ -468,7 +536,7 @@ const styles = {
   },
   uploadLabel: {
     display: 'block',
-    padding: '32px 20px',
+    padding: '24px 20px',
     background: '#fafbfc',
     border: '2px dashed #ccc',
     borderRadius: '8px',
@@ -476,42 +544,25 @@ const styles = {
     cursor: 'pointer',
     transition: 'border-color 0.2s ease, background 0.2s ease',
   },
-  uploadIcon: { fontSize: '32px', marginBottom: '8px' },
+  uploadIcon: { fontSize: '28px', marginBottom: '6px' },
   uploadText: {
     margin: '0 0 4px',
     color: '#0b3d6b',
-    fontSize: '14px',
+    fontSize: '13px',
     fontWeight: 600,
   },
   uploadHint: { margin: 0, color: '#888', fontSize: '11px' },
-  // Preview
-  previewBox: {
-    position: 'relative',
-    borderRadius: '8px',
-    overflow: 'hidden',
-    border: '1px solid #e5e5e5',
-  },
-  previewImg: {
-    display: 'block',
-    width: '100%',
-    maxHeight: '300px',
-    objectFit: 'cover',
-  },
-  removePhotoBtn: {
-    position: 'absolute',
-    top: '10px',
-    right: '10px',
-    padding: '6px 12px',
-    background: '#e74c3c',
-    color: '#fff',
-    border: 'none',
+  photoLimitBox: {
+    marginTop: '10px',
+    padding: '12px 16px',
+    background: '#eafaf1',
+    border: '1px solid #b8e6c9',
     borderRadius: '6px',
-    cursor: 'pointer',
     fontSize: '12px',
+    color: '#27ae60',
     fontWeight: 600,
-    transition: 'background 0.2s ease',
+    textAlign: 'center',
   },
-  // GPS & peta
   gpsRow: {
     display: 'flex',
     alignItems: 'center',

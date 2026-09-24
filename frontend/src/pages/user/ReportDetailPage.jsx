@@ -1,7 +1,7 @@
 // ============================================================
 // SIMONIK - Report Detail Page (User)
 // File: src/pages/user/ReportDetailPage.jsx
-// Deskripsi: Halaman detail laporan user + timeline + foto
+// Deskripsi: Halaman detail laporan user + timeline + foto terpisah
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -81,8 +81,8 @@ export default function ReportDetailPage() {
   if (error || !report) {
     return (
       <div style={styles.container}>
-        <Link to="/user/dashboard" style={styles.backLink}>
-          ← Kembali ke Dashboard
+        <Link to="/user/my-reports" style={styles.backLink}>
+          ← Kembali ke Laporan Saya
         </Link>
         <div style={styles.errorBox}>
           <p style={styles.errorText}>⚠️ {error || 'Laporan tidak ditemukan'}</p>
@@ -99,9 +99,11 @@ export default function ReportDetailPage() {
   };
   const position = [Number(report.latitude), Number(report.longitude)];
 
+  const fotoLaporan = attachments.filter((a) => a.type === 'laporan');
+  const fotoBukti = attachments.filter((a) => a.type === 'bukti');
+
   return (
     <div style={styles.container}>
-      {/* Back link */}
       <Link
         to="/user/my-reports"
         style={styles.backLink}
@@ -139,12 +141,12 @@ export default function ReportDetailPage() {
         <p style={styles.description}>{report.description}</p>
       </div>
 
-      {/* Card: Foto */}
-      {attachments.length > 0 && (
+      {/* Card: Foto Laporan (dari User) */}
+      {fotoLaporan.length > 0 && (
         <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>Foto ({attachments.length})</h2>
+          <h2 style={styles.sectionTitle}>Foto Laporan ({fotoLaporan.length})</h2>
           <div style={styles.photoGrid}>
-            {attachments.map((att) => (
+            {fotoLaporan.map((att) => (
               <a
                 key={att.id}
                 href={`${API_BASE}${att.file_url}`}
@@ -158,8 +160,39 @@ export default function ReportDetailPage() {
                   style={styles.photoImg}
                   loading="lazy"
                 />
-                <span style={styles.photoType}>
-                  {att.type === 'bukti' ? '✓ Bukti' : '📷 Laporan'}
+                <span style={styles.photoType}>📷 Laporan</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Card: Bukti Penyelesaian (dari Petugas) */}
+      {fotoBukti.length > 0 && (
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>✓ Bukti Penyelesaian ({fotoBukti.length})</h2>
+          <div style={styles.photoGrid}>
+            {fotoBukti.map((att) => (
+              <a
+                key={att.id}
+                href={`${API_BASE}${att.file_url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={styles.photoItem}
+              >
+                <img
+                  src={`${API_BASE}${att.file_url}`}
+                  alt="Bukti penyelesaian"
+                  style={styles.photoImg}
+                  loading="lazy"
+                />
+                <span
+                  style={{
+                    ...styles.photoType,
+                    background: 'rgba(39, 174, 96, 0.85)',
+                  }}
+                >
+                  ✓ Bukti
                 </span>
               </a>
             ))}
@@ -265,8 +298,6 @@ const styles = {
     fontWeight: 600,
     transition: 'color 0.2s ease',
   },
-
-  // ===== CARD =====
   card: {
     background: '#fff',
     border: '1px solid #e5e5e5',
@@ -281,8 +312,6 @@ const styles = {
     alignItems: 'center',
     marginBottom: '12px',
   },
-
-  // Header info
   scopeBadge: {
     display: 'flex',
     alignItems: 'center',
@@ -312,8 +341,6 @@ const styles = {
     fontSize: '13px',
     fontStyle: 'italic',
   },
-
-  // Section title
   sectionTitle: {
     margin: '0 0 12px',
     color: '#0b3d6b',
@@ -344,8 +371,6 @@ const styles = {
     height: '100%',
     width: '100%',
   },
-
-  // Foto gallery
   photoGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
@@ -377,8 +402,6 @@ const styles = {
     fontWeight: 700,
     borderRadius: '10px',
   },
-
-  // States
   stateBox: {
     padding: '60px 20px',
     textAlign: 'center',
@@ -393,8 +416,6 @@ const styles = {
     textAlign: 'center',
   },
   errorText: { margin: 0, color: '#c0392b', fontSize: '14px' },
-
-  // Timeline
   timeline: { display: 'flex', flexDirection: 'column' },
   timelineItem: { display: 'flex', gap: '16px', minHeight: '60px' },
   timelineLeft: {
@@ -440,8 +461,6 @@ const styles = {
     lineHeight: 1.5,
   },
   timelineBy: { margin: '4px 0 0', color: '#888', fontSize: '11px' },
-
-  // Final info
   finalInfo: {
     padding: '16px 20px',
     background: '#f5f7fa',
