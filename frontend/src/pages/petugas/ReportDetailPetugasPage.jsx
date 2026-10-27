@@ -1,7 +1,6 @@
 // ============================================================
 // SIMONIK - Report Detail Petugas Page
 // File: src/pages/petugas/ReportDetailPetugasPage.jsx
-// Deskripsi: Detail laporan petugas + foto + upload bukti (maks 3) + aksi
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -18,18 +17,18 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const SCOPE_INFO = {
-  jalan: { label: 'Jalan', icon: '🛣️' },
-  lampu: { label: 'Lampu Penerangan Jalan', icon: '💡' },
-  drainase: { label: 'Drainase', icon: '🚰' },
+const SCOPE_LABEL = {
+  jalan: 'Jalan',
+  lampu: 'Lampu Penerangan Jalan',
+  drainase: 'Drainase',
 };
 
 const STATUS_INFO = {
-  DIAJUKAN: { label: 'Diajukan', color: '#f39c12', bg: '#fef5e7' },
-  DIVERIFIKASI: { label: 'Diverifikasi', color: '#3498db', bg: '#eaf4fb' },
-  DIPROSES: { label: 'Diproses', color: '#9b59b6', bg: '#f4ecf7' },
-  SELESAI: { label: 'Selesai', color: '#27ae60', bg: '#eafaf1' },
-  DITOLAK: { label: 'Ditolak', color: '#c0392b', bg: '#fff5f5' },
+  DIAJUKAN: { label: 'Diajukan', color: '#f39c12', bg: '#fef3c7' },
+  DIVERIFIKASI: { label: 'Diverifikasi', color: '#3498db', bg: '#dbeafe' },
+  DIPROSES: { label: 'Diproses', color: '#9b59b6', bg: '#f3e8ff' },
+  SELESAI: { label: 'Selesai', color: '#27ae60', bg: '#dcfce7' },
+  DITOLAK: { label: 'Ditolak', color: '#c0392b', bg: '#fee2e2' },
 };
 
 const STATUS_ACTIONS = {
@@ -38,7 +37,6 @@ const STATUS_ACTIONS = {
       status: 'DIVERIFIKASI',
       label: 'Verifikasi Laporan',
       color: '#27ae60',
-      icon: '✓',
       notePlaceholder: 'Catatan verifikasi (opsional)',
       confirmText: 'Verifikasi laporan ini? Laporan akan diteruskan untuk ditangani.',
     },
@@ -46,7 +44,6 @@ const STATUS_ACTIONS = {
       status: 'DITOLAK',
       label: 'Tolak Laporan',
       color: '#c0392b',
-      icon: '✗',
       notePlaceholder: 'Alasan penolakan (wajib)',
       confirmText: 'Tolak laporan ini? Pastikan alasan penolakan diisi.',
       requireNote: true,
@@ -55,10 +52,9 @@ const STATUS_ACTIONS = {
   DIVERIFIKASI: [
     {
       status: 'DIPROSES',
-      label: 'Mulai Proses Penanganan',
+      label: 'Mulai Proses',
       color: '#9b59b6',
-      icon: '▶',
-      notePlaceholder: 'Catatan mulai proses (opsional)',
+      notePlaceholder: 'Catatan proses (opsional)',
       confirmText: 'Mulai proses penanganan laporan ini?',
     },
   ],
@@ -67,9 +63,8 @@ const STATUS_ACTIONS = {
       status: 'SELESAI',
       label: 'Tandai Selesai',
       color: '#27ae60',
-      icon: '✓',
       notePlaceholder: 'Catatan penyelesaian (opsional)',
-      confirmText: 'Tandai laporan ini sebagai SELESAI? Laporan tidak bisa diubah lagi.',
+      confirmText: 'Tandai laporan ini sebagai SELESAI? Aksi ini tidak dapat dibatalkan.',
     },
   ],
   SELESAI: [],
@@ -99,7 +94,6 @@ export default function ReportDetailPetugasPage() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line
   }, [id]);
 
   async function fetchData() {
@@ -131,7 +125,6 @@ export default function ReportDetailPetugasPage() {
 
   async function handleConfirm() {
     if (!modal) return;
-
     if (modal.action.requireNote && !modal.note.trim()) {
       setModal({ ...modal, error: 'Catatan wajib diisi untuk aksi ini.' });
       return;
@@ -167,7 +160,7 @@ export default function ReportDetailPetugasPage() {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setUploadError('Ukuran file maksimal 5MB.');
+      setUploadError('Ukuran maksimal file adalah 5MB.');
       e.target.value = '';
       return;
     }
@@ -203,7 +196,7 @@ export default function ReportDetailPetugasPage() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      setUploadSuccess('Bukti berhasil diunggah!');
+      setUploadSuccess('Bukti berhasil diunggah.');
       handleRemoveBukti();
       await fetchData();
     } catch (err) {
@@ -213,35 +206,10 @@ export default function ReportDetailPetugasPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.stateBox}>
-          <p style={styles.stateText}>Memuat detail laporan...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div style={styles.statePage}>Memuat detail laporan...</div>;
+  if (error || !report) return <div style={styles.statePage}>{error || 'Laporan tidak ditemukan.'}</div>;
 
-  if (error || !report) {
-    return (
-      <div style={styles.container}>
-        <Link to="/petugas/dashboard" style={styles.backLink}>
-          ← Kembali ke Dashboard
-        </Link>
-        <div style={styles.errorBox}>
-          <p style={styles.errorText}>⚠️ {error || 'Laporan tidak ditemukan'}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const scopeInfo = SCOPE_INFO[report.scope] || { label: report.scope, icon: '📍' };
-  const statusInfo = STATUS_INFO[report.status] || {
-    label: report.status,
-    color: '#666',
-    bg: '#f5f5f5',
-  };
+  const statusInfo = STATUS_INFO[report.status] || { label: report.status, color: '#666', bg: '#f1f5f9' };
   const position = [Number(report.latitude), Number(report.longitude)];
   const actions = STATUS_ACTIONS[report.status] || [];
   const canUploadBukti = CAN_UPLOAD_BUKTI.includes(report.status);
@@ -251,378 +219,253 @@ export default function ReportDetailPetugasPage() {
   const buktiPenuh = fotoBukti.length >= MAX_BUKTI;
 
   return (
-    <div style={styles.container}>
-      <Link
-        to="/petugas/dashboard"
-        style={styles.backLink}
-        onMouseEnter={(e) => (e.target.style.color = '#1a5490')}
-        onMouseLeave={(e) => (e.target.style.color = '#0b3d6b')}
-      >
-        ← Kembali ke Dashboard
-      </Link>
+    <div style={styles.page}>
+      <div style={styles.container}>
+        <Link 
+          to="/petugas/dashboard" 
+          style={styles.backBtn}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e5e7eb')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Kembali ke Dashboard
+        </Link>
 
-      {/* Card: Header */}
-      <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <div style={styles.scopeBadge}>
-            <span style={styles.scopeIcon}>{scopeInfo.icon}</span>
-            <span style={styles.scopeLabel}>{scopeInfo.label}</span>
-          </div>
-          <span
-            style={{
-              ...styles.statusBadge,
-              color: statusInfo.color,
-              background: statusInfo.bg,
-            }}
-          >
-            {statusInfo.label}
-          </span>
-        </div>
-
-        <h1 style={styles.title}>{report.title}</h1>
-        <p style={styles.meta}>🕐 Dibuat {formatRelativeTime(report.created_at)}</p>
-        {report.user_name && (
-          <p style={styles.pelapor}>
-            👤 Dilaporkan oleh <strong>{report.user_name}</strong>
-          </p>
-        )}
-      </div>
-
-      {/* Card: Deskripsi */}
-      <div style={styles.card}>
-        <h2 style={styles.sectionTitle}>Deskripsi</h2>
-        <p style={styles.description}>{report.description}</p>
-      </div>
-
-      {/* Card: Foto Laporan */}
-      {fotoLaporan.length > 0 && (
+        {/* Header Card */}
         <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            Foto Laporan ({fotoLaporan.length})
-          </h2>
-          <div style={styles.photoGrid}>
-            {fotoLaporan.map((att) => (
-              <a
-                key={att.id}
-                href={`${API_BASE}${att.file_url}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={styles.photoItem}
-              >
-                <img
-                  src={`${API_BASE}${att.file_url}`}
-                  alt="Foto laporan"
-                  style={styles.photoImg}
-                  loading="lazy"
-                />
-                <span style={styles.photoType}>📷 Laporan</span>
-              </a>
-            ))}
+          <div style={styles.cardHeader}>
+            <span style={styles.scopeLabel}>{SCOPE_LABEL[report.scope] || report.scope}</span>
+            <span style={{ ...styles.statusBadge, color: statusInfo.color, backgroundColor: statusInfo.bg }}>
+              {statusInfo.label}
+            </span>
           </div>
-        </div>
-      )}
-
-      {/* Card: Bukti Penyelesaian */}
-      {fotoBukti.length > 0 && (
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            ✓ Bukti Penyelesaian ({fotoBukti.length})
-          </h2>
-          <div style={styles.photoGrid}>
-            {fotoBukti.map((att) => (
-              <a
-                key={att.id}
-                href={`${API_BASE}${att.file_url}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={styles.photoItem}
-              >
-                <img
-                  src={`${API_BASE}${att.file_url}`}
-                  alt="Bukti penyelesaian"
-                  style={styles.photoImg}
-                  loading="lazy"
-                />
-                <span
-                  style={{
-                    ...styles.photoType,
-                    background: 'rgba(39, 174, 96, 0.85)',
-                  }}
-                >
-                  ✓ Bukti
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Card: Upload Bukti */}
-      {canUploadBukti && (
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            Upload Bukti Penyelesaian ({fotoBukti.length}/{MAX_BUKTI})
-          </h2>
-
-          <div style={styles.photoNote}>
-            📸 Maksimal {MAX_BUKTI} foto bukti. Pastikan pencahayaan jelas agar foto terbaca.
-          </div>
-
-          <p style={styles.uploadBuktiHint}>
-            Unggah foto kondisi setelah diperbaiki sebagai bukti penyelesaian.
-          </p>
-
-          {buktiPenuh ? (
-            <div style={styles.photoLimitBox}>
-              ✅ Batas maksimal {MAX_BUKTI} foto bukti sudah tercapai.
-            </div>
-          ) : (
-            <>
-              {!buktiPreview ? (
-                <div style={styles.uploadBox}>
-                  <input
-                    id="bukti-input"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleBuktiChange}
-                    style={styles.fileInput}
-                  />
-                  <label htmlFor="bukti-input" style={styles.uploadLabel}>
-                    <div style={styles.uploadIcon}>📷</div>
-                    <p style={styles.uploadText}>
-                      Klik untuk pilih foto bukti ({MAX_BUKTI - fotoBukti.length} slot tersisa)
-                    </p>
-                    <p style={styles.uploadHint}>
-                      Format: JPG, PNG, WEBP · Maks 5MB per foto
-                    </p>
-                  </label>
-                </div>
-              ) : (
-                <div>
-                  <div style={styles.previewBox}>
-                    <img src={buktiPreview} alt="Preview" style={styles.previewImg} />
-                    <button
-                      type="button"
-                      onClick={handleRemoveBukti}
-                      style={styles.removePhotoBtn}
-                      onMouseEnter={(e) => (e.target.style.background = '#c0392b')}
-                      onMouseLeave={(e) => (e.target.style.background = '#e74c3c')}
-                    >
-                      ✗ Hapus
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleUploadBukti}
-                    disabled={uploadingBukti}
-                    style={styles.uploadSubmitBtn}
-                    onMouseEnter={(e) => {
-                      if (!uploadingBukti) {
-                        e.target.style.background = '#1a5490';
-                        e.target.style.transform = 'translateY(-2px)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.background = '#0b3d6b';
-                      e.target.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    {uploadingBukti ? 'Mengunggah...' : '⬆ Upload Bukti'}
-                  </button>
-                </div>
-              )}
-            </>
+          <h1 style={styles.title}>{report.title}</h1>
+          <p style={styles.meta}>Dikirim {formatRelativeTime(report.created_at)}</p>
+          {report.user_name && (
+            <p style={styles.meta}>Pelapor: <strong>{report.user_name}</strong></p>
           )}
-
-          {uploadError && <div style={styles.uploadError}>{uploadError}</div>}
-          {uploadSuccess && <div style={styles.uploadSuccess}>{uploadSuccess}</div>}
         </div>
-      )}
 
-      {/* Card: Lokasi */}
-      <div style={styles.card}>
-        <h2 style={styles.sectionTitle}>Lokasi</h2>
-        <p style={styles.coordText}>
-          📌 {Number(report.latitude).toFixed(5)}, {Number(report.longitude).toFixed(5)}
-        </p>
-        <div style={styles.mapWrapper}>
-          <MapContainer
-            center={position}
-            zoom={16}
-            style={styles.map}
-            scrollWheelZoom={false}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Marker position={position} />
-          </MapContainer>
+        {/* Description Card */}
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>Deskripsi</h2>
+          <p style={styles.description}>{report.description}</p>
         </div>
-      </div>
 
-      {/* Card: Timeline */}
-      <div style={styles.card}>
-        <h2 style={styles.sectionTitle}>Riwayat Status</h2>
-        <div style={styles.timeline}>
-          {history.map((item, index) => {
-            const info = STATUS_INFO[item.status] || {
-              label: item.status,
-              color: '#666',
-              bg: '#f5f5f5',
-            };
-            const isLast = index === history.length - 1;
-
-            return (
-              <div key={item.id} style={styles.timelineItem}>
-                <div style={styles.timelineLeft}>
-                  <div style={{ ...styles.timelineDot, background: info.color }} />
-                  {!isLast && <div style={styles.timelineLine} />}
-                </div>
-                <div style={styles.timelineContent}>
-                  <div style={styles.timelineHeader}>
-                    <span
-                      style={{
-                        ...styles.timelineStatus,
-                        color: info.color,
-                        background: info.bg,
-                      }}
-                    >
-                      {info.label}
-                    </span>
-                    <span style={styles.timelineTime}>
-                      {formatFullDate(item.changed_at)}
-                    </span>
-                  </div>
-                  {item.note && <p style={styles.timelineNote}>{item.note}</p>}
-                  {item.changed_by_name && (
-                    <p style={styles.timelineBy}>
-                      oleh <strong>{item.changed_by_name}</strong> ({item.changed_by_role})
-                    </p>
-                  )}
+        {/* Photos Card */}
+        {(fotoLaporan.length > 0 || fotoBukti.length > 0) && (
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>Lampiran Foto</h2>
+            
+            {fotoLaporan.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <p style={styles.photoLabel}>Foto Laporan ({fotoLaporan.length})</p>
+                <div style={styles.photoGrid}>
+                  {fotoLaporan.map((att) => (
+                    <a key={att.id} href={`${API_BASE}${att.file_url}`} target="_blank" rel="noopener noreferrer" style={styles.photoItem}>
+                      <img src={`${API_BASE}${att.file_url}`} alt="Report" style={styles.photoImg} />
+                    </a>
+                  ))}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
+            )}
 
-      {/* Card: Aksi */}
-      {actions.length > 0 && (
+            {fotoBukti.length > 0 && (
+              <div>
+                <p style={styles.photoLabel}>Bukti Penyelesaian ({fotoBukti.length})</p>
+                <div style={styles.photoGrid}>
+                  {fotoBukti.map((att) => (
+                    <a key={att.id} href={`${API_BASE}${att.file_url}`} target="_blank" rel="noopener noreferrer" style={styles.photoItem}>
+                      <img src={`${API_BASE}${att.file_url}`} alt="Evidence" style={styles.photoImg} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Upload Evidence Card */}
+        {canUploadBukti && (
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>Unggah Bukti Penyelesaian ({fotoBukti.length}/{MAX_BUKTI})</h2>
+            <p style={styles.helperText}>Maksimal 3 foto. Pastikan pencahayaan jelas.</p>
+            
+            {buktiPenuh ? (
+              <div style={styles.limitBox}>Batas maksimal foto tercapai.</div>
+            ) : (
+              <div>
+                {!buktiPreview ? (
+                  <div style={styles.uploadArea}>
+                    <input id="bukti-input" type="file" accept="image/*" onChange={handleBuktiChange} style={styles.fileInput} />
+                    <label htmlFor="bukti-input" style={styles.uploadLabel}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '8px' }}>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      <p style={styles.uploadText}>Klik untuk memilih foto bukti</p>
+                    </label>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={styles.previewArea}>
+                      <img src={buktiPreview} alt="Preview" style={styles.previewImg} />
+                      <button type="button" onClick={handleRemoveBukti} style={styles.removeBtn}>Hapus</button>
+                    </div>
+                    <button type="button" onClick={handleUploadBukti} disabled={uploadingBukti} style={styles.primaryBtn}>
+                      {uploadingBukti ? 'Mengunggah...' : 'Unggah Bukti'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {uploadError && <div style={styles.errorBox}>{uploadError}</div>}
+            {uploadSuccess && <div style={styles.successBox}>{uploadSuccess}</div>}
+          </div>
+        )}
+
+        {/* Location Card */}
         <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>Aksi</h2>
-          <div style={styles.actionsRow}>
-            {actions.map((action) => (
-              <button
-                key={action.status}
-                onClick={() => openModal(action)}
-                style={{ ...styles.actionBtn, background: action.color }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = `0 6px 20px ${action.color}66`;
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              >
-                {action.icon} {action.label}
-              </button>
-            ))}
+          <h2 style={styles.sectionTitle}>Lokasi</h2>
+          <p style={styles.coordText}>{Number(report.latitude).toFixed(5)}, {Number(report.longitude).toFixed(5)}</p>
+          <div style={styles.mapWrapper}>
+            <MapContainer center={position} zoom={16} style={styles.map} scrollWheelZoom={false}>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <Marker position={position} />
+            </MapContainer>
           </div>
         </div>
-      )}
 
-      {/* Info final status */}
-      {(report.status === 'SELESAI' || report.status === 'DITOLAK') && (
-        <div style={styles.finalInfo}>
-          <p style={styles.finalText}>
-            {report.status === 'SELESAI'
-              ? '✅ Laporan ini sudah selesai ditangani.'
-              : '❌ Laporan ini sudah ditolak.'}
-          </p>
-        </div>
-      )}
-
-      {/* Modal */}
-      {modal && (
-        <div style={styles.modalOverlay} onClick={closeModal}>
-          <div style={styles.modalBox} onClick={(e) => e.stopPropagation()}>
-            <h3 style={styles.modalTitle}>{modal.action.label}</h3>
-            <p style={styles.modalConfirmText}>{modal.action.confirmText}</p>
-
-            <div style={styles.modalField}>
-              <label style={styles.modalLabel}>
-                Catatan{' '}
-                {modal.action.requireNote && <span style={{ color: '#c0392b' }}>*</span>}
-              </label>
-              <textarea
-                value={modal.note}
-                onChange={(e) =>
-                  setModal({ ...modal, note: e.target.value, error: '' })
-                }
-                placeholder={modal.action.notePlaceholder}
-                rows={3}
-                style={styles.modalTextarea}
-                autoFocus
-              />
-            </div>
-
-            {modal.error && <div style={styles.modalError}>{modal.error}</div>}
-
-            <div style={styles.modalActions}>
-              <button
-                onClick={closeModal}
-                disabled={modal.loading}
-                style={styles.modalCancelBtn}
-                onMouseEnter={(e) => (e.target.style.background = '#f5f5f5')}
-                onMouseLeave={(e) => (e.target.style.background = '#fff')}
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleConfirm}
-                disabled={modal.loading}
-                style={{ ...styles.modalConfirmBtn, background: modal.action.color }}
-                onMouseEnter={(e) => {
-                  if (!modal.loading) e.target.style.opacity = '0.9';
-                }}
-                onMouseLeave={(e) => (e.target.style.opacity = '1')}
-              >
-                {modal.loading ? 'Memproses...' : 'Konfirmasi'}
-              </button>
-            </div>
+        {/* Timeline Card */}
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>Riwayat Status</h2>
+          <div style={styles.timeline}>
+            {history.map((item, index) => {
+              const info = STATUS_INFO[item.status] || { label: item.status, color: '#666', bg: '#f1f5f9' };
+              const isLast = index === history.length - 1;
+              return (
+                <div key={item.id} style={styles.timelineItem}>
+                  <div style={styles.timelineLeft}>
+                    <div style={{ ...styles.timelineDot, backgroundColor: info.color }} />
+                    {!isLast && <div style={styles.timelineLine} />}
+                  </div>
+                  <div style={styles.timelineContent}>
+                    <div style={styles.timelineHeader}>
+                      <span style={{ ...styles.timelineStatus, color: info.color, backgroundColor: info.bg }}>{info.label}</span>
+                      <span style={styles.timelineTime}>{formatFullDate(item.changed_at)}</span>
+                    </div>
+                    {item.note && <p style={styles.timelineNote}>{item.note}</p>}
+                    {item.changed_by_name && <p style={styles.timelineBy}>oleh {item.changed_by_name}</p>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      )}
+
+        {/* Actions Card */}
+        {actions.length > 0 && (
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>Aksi Tersedia</h2>
+            <div style={styles.actionsRow}>
+              {actions.map((action) => (
+                <button
+                  key={action.status}
+                  onClick={() => openModal(action)}
+                  style={{ ...styles.actionButton, backgroundColor: action.color }}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {report.status === 'SELESAI' && (
+          <div style={styles.finalBox}>Laporan ini telah selesai ditangani.</div>
+        )}
+        {report.status === 'DITOLAK' && (
+          <div style={styles.finalBoxError}>Laporan ini telah ditolak.</div>
+        )}
+
+        {/* Modal Confirmation */}
+        {modal && (
+          <div style={styles.modalOverlay} onClick={closeModal}>
+            <div style={styles.modalBox} onClick={(e) => e.stopPropagation()}>
+              <h3 style={styles.modalTitle}>{modal.action.label}</h3>
+              <p style={styles.modalConfirmText}>{modal.action.confirmText}</p>
+              
+              <div style={styles.field}>
+                <label style={styles.label}>
+                  Catatan {modal.action.requireNote && <span style={{ color: '#ef4444' }}>*</span>}
+                </label>
+                <textarea
+                  value={modal.note}
+                  onChange={(e) => setModal({ ...modal, note: e.target.value, error: '' })}
+                  placeholder={modal.action.notePlaceholder}
+                  rows={3}
+                  style={styles.textarea}
+                />
+              </div>
+
+              {modal.error && <div style={styles.errorBox}>{modal.error}</div>}
+
+              <div style={styles.modalActions}>
+                <button onClick={closeModal} disabled={modal.loading} style={styles.cancelBtn}>
+                  Batal
+                </button>
+                <button 
+                  onClick={handleConfirm} 
+                  disabled={modal.loading} 
+                  style={{ ...styles.primaryBtn, backgroundColor: modal.action.color }}
+                >
+                  {modal.loading ? 'Memproses...' : 'Konfirmasi'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
 
 const styles = {
+  page: {
+    minHeight: '100vh',
+    backgroundColor: '#f5f7fa',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    padding: '40px 20px',
+  },
   container: {
     maxWidth: '800px',
     margin: '0 auto',
-    padding: '40px 20px',
-    fontFamily: 'system-ui, sans-serif',
   },
-  backLink: {
-    display: 'inline-block',
-    marginBottom: '20px',
-    color: '#0b3d6b',
+  backBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '6px 12px',
+    backgroundColor: 'transparent',
+    color: '#4b5563',
+    borderRadius: '6px',
     textDecoration: 'none',
     fontSize: '14px',
-    fontWeight: 600,
-    transition: 'color 0.2s ease',
+    fontWeight: '500',
+    marginBottom: '24px',
+    transition: 'background-color 0.2s',
   },
   card: {
-    background: '#fff',
+    backgroundColor: '#ffffff',
     border: '1px solid #e5e5e5',
     borderRadius: '8px',
-    padding: '20px 24px',
+    padding: '24px',
     marginBottom: '16px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    boxShadow: '0 1px 3px 0 rgba(0,0,0,0.05)',
   },
   cardHeader: {
     display: 'flex',
@@ -630,76 +473,62 @@ const styles = {
     alignItems: 'center',
     marginBottom: '12px',
   },
-  scopeBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
+  scopeLabel: {
     fontSize: '13px',
-    color: '#666',
-    fontWeight: 600,
+    fontWeight: '600',
+    color: '#4b5563',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
   },
-  scopeIcon: { fontSize: '20px' },
-  scopeLabel: { letterSpacing: '0.3px' },
   statusBadge: {
-    padding: '6px 14px',
-    borderRadius: '14px',
     fontSize: '12px',
-    fontWeight: 700,
-    letterSpacing: '0.3px',
+    padding: '4px 10px',
+    borderRadius: '9999px',
+    fontWeight: '600',
   },
   title: {
-    margin: '0 0 6px',
-    color: '#0b3d6b',
+    margin: '0 0 8px',
     fontSize: '22px',
-    lineHeight: 1.3,
+    fontWeight: '600',
+    color: '#111827',
+    lineHeight: '1.3',
   },
   meta: {
-    margin: '0 0 6px',
-    color: '#888',
+    margin: '0 0 4px',
     fontSize: '13px',
-    fontStyle: 'italic',
+    color: '#6b7280',
   },
-  pelapor: { margin: 0, color: '#666', fontSize: '13px' },
   sectionTitle: {
-    margin: '0 0 12px',
-    color: '#0b3d6b',
-    fontSize: '13px',
-    fontWeight: 700,
+    margin: '0 0 16px',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#374151',
     textTransform: 'uppercase',
-    letterSpacing: '0.7px',
+    letterSpacing: '0.5px',
   },
   description: {
     margin: 0,
-    color: '#333',
     fontSize: '14px',
-    lineHeight: 1.7,
+    color: '#1f2937',
+    lineHeight: '1.6',
   },
-  coordText: {
-    margin: '0 0 12px',
-    color: '#333',
+  photoLabel: {
+    margin: '0 0 8px',
     fontSize: '13px',
-    fontFamily: 'monospace',
+    color: '#6b7280',
+    fontWeight: '500',
   },
-  mapWrapper: {
-    height: '280px',
-    borderRadius: '6px',
-    overflow: 'hidden',
-    border: '1px solid #e5e5e5',
-  },
-  map: { height: '100%', width: '100%' },
   photoGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-    gap: '10px',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+    gap: '12px',
   },
   photoItem: {
-    position: 'relative',
     display: 'block',
-    borderRadius: '8px',
+    borderRadius: '6px',
     overflow: 'hidden',
+    aspectRatio: '1',
     border: '1px solid #e5e5e5',
-    aspectRatio: '1 / 1',
-    textDecoration: 'none',
   },
   photoImg: {
     width: '100%',
@@ -707,143 +536,106 @@ const styles = {
     objectFit: 'cover',
     display: 'block',
   },
-  photoType: {
-    position: 'absolute',
-    bottom: '6px',
-    left: '6px',
-    padding: '2px 8px',
-    background: 'rgba(0,0,0,0.65)',
-    color: '#fff',
-    fontSize: '10px',
-    fontWeight: 700,
-    borderRadius: '10px',
+  helperText: {
+    margin: '0 0 12px',
+    fontSize: '13px',
+    color: '#6b7280',
   },
-  photoNote: {
-    padding: '8px 12px',
-    background: '#fffbea',
-    border: '1px solid #ffeaa7',
-    borderRadius: '6px',
-    fontSize: '12px',
-    color: '#856404',
-    lineHeight: 1.5,
-    marginBottom: '10px',
-  },
-  photoLimitBox: {
+  limitBox: {
     padding: '12px 16px',
-    background: '#eafaf1',
-    border: '1px solid #b8e6c9',
+    backgroundColor: '#f1f5f9',
+    color: '#475569',
     borderRadius: '6px',
-    fontSize: '12px',
-    color: '#27ae60',
-    fontWeight: 600,
+    fontSize: '14px',
     textAlign: 'center',
   },
-  uploadBuktiHint: {
-    margin: '0 0 12px',
-    color: '#666',
-    fontSize: '13px',
-    lineHeight: 1.5,
+  uploadArea: {
+    position: 'relative',
   },
-  uploadBox: { position: 'relative' },
   fileInput: {
     position: 'absolute',
     width: '1px',
     height: '1px',
     opacity: 0,
-    overflow: 'hidden',
   },
   uploadLabel: {
-    display: 'block',
-    padding: '24px 20px',
-    background: '#fafbfc',
-    border: '2px dashed #ccc',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+    backgroundColor: '#f8fafc',
+    border: '2px dashed #d1d5db',
     borderRadius: '8px',
-    textAlign: 'center',
     cursor: 'pointer',
-    transition: 'border-color 0.2s ease, background 0.2s ease',
   },
-  uploadIcon: { fontSize: '28px', marginBottom: '6px' },
   uploadText: {
-    margin: '0 0 4px',
-    color: '#0b3d6b',
-    fontSize: '13px',
-    fontWeight: 600,
+    margin: 0,
+    fontSize: '14px',
+    color: '#4b5563',
+    fontWeight: '500',
   },
-  uploadHint: { margin: 0, color: '#888', fontSize: '11px' },
-  previewBox: {
+  previewArea: {
     position: 'relative',
     borderRadius: '8px',
     overflow: 'hidden',
     border: '1px solid #e5e5e5',
-    marginBottom: '12px',
+    marginBottom: '16px',
   },
   previewImg: {
-    display: 'block',
     width: '100%',
     maxHeight: '250px',
     objectFit: 'cover',
+    display: 'block',
   },
-  removePhotoBtn: {
+  removeBtn: {
     position: 'absolute',
-    top: '10px',
-    right: '10px',
+    top: '12px',
+    right: '12px',
     padding: '6px 12px',
-    background: '#e74c3c',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     color: '#fff',
     border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
+    borderRadius: '4px',
     fontSize: '12px',
-    fontWeight: 600,
-    transition: 'background 0.2s ease',
+    cursor: 'pointer',
   },
-  uploadSubmitBtn: {
-    width: '100%',
-    padding: '12px',
-    background: '#0b3d6b',
-    color: '#fff',
+  primaryBtn: {
+    padding: '10px 16px',
+    backgroundColor: '#0b3d6b',
+    color: '#ffffff',
     border: 'none',
     borderRadius: '6px',
-    cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: 600,
-    transition: 'background 0.2s ease, transform 0.2s ease',
+    fontWeight: '500',
+    cursor: 'pointer',
+    width: '100%',
   },
-  uploadError: {
-    marginTop: '12px',
-    padding: '10px 12px',
-    background: '#fff5f5',
-    color: '#c0392b',
-    border: '1px solid #f5c6cb',
-    borderRadius: '6px',
-    fontSize: '12px',
+  coordText: {
+    margin: '0 0 12px',
+    fontSize: '14px',
+    color: '#4b5563',
+    fontFamily: 'monospace',
   },
-  uploadSuccess: {
-    marginTop: '12px',
-    padding: '10px 12px',
-    background: '#eafaf1',
-    color: '#27ae60',
-    border: '1px solid #b8e6c9',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: 600,
-  },
-  stateBox: {
-    padding: '60px 20px',
-    textAlign: 'center',
-    color: '#888',
-  },
-  stateText: { fontSize: '14px', fontStyle: 'italic' },
-  errorBox: {
-    padding: '20px',
-    background: '#fff5f5',
-    border: '1px solid #f5c6cb',
+  mapWrapper: {
+    height: '250px',
     borderRadius: '8px',
-    textAlign: 'center',
+    overflow: 'hidden',
+    border: '1px solid #e5e5e5',
   },
-  errorText: { margin: 0, color: '#c0392b', fontSize: '14px' },
-  timeline: { display: 'flex', flexDirection: 'column' },
-  timelineItem: { display: 'flex', gap: '16px', minHeight: '60px' },
+  map: {
+    height: '100%',
+    width: '100%',
+  },
+  timeline: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  timelineItem: {
+    display: 'flex',
+    gap: '16px',
+    minHeight: '60px',
+  },
   timelineLeft: {
     display: 'flex',
     flexDirection: 'column',
@@ -851,20 +643,21 @@ const styles = {
     paddingTop: '4px',
   },
   timelineDot: {
-    width: '14px',
-    height: '14px',
+    width: '12px',
+    height: '12px',
     borderRadius: '50%',
     flexShrink: 0,
-    border: '3px solid #fff',
-    boxShadow: '0 0 0 1px #e5e5e5',
   },
   timelineLine: {
     width: '2px',
     flex: 1,
-    background: '#e5e5e5',
+    backgroundColor: '#e5e5e5',
     margin: '4px 0',
   },
-  timelineContent: { flex: 1, paddingBottom: '20px' },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: '20px',
+  },
   timelineHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -874,50 +667,62 @@ const styles = {
     gap: '8px',
   },
   timelineStatus: {
-    padding: '3px 10px',
-    borderRadius: '12px',
+    padding: '2px 8px',
+    borderRadius: '4px',
     fontSize: '11px',
-    fontWeight: 700,
+    fontWeight: '600',
   },
-  timelineTime: { fontSize: '11px', color: '#888' },
+  timelineTime: {
+    fontSize: '12px',
+    color: '#6b7280',
+  },
   timelineNote: {
     margin: '4px 0 0',
-    color: '#333',
     fontSize: '13px',
-    lineHeight: 1.5,
+    color: '#374151',
   },
-  timelineBy: { margin: '4px 0 0', color: '#888', fontSize: '11px' },
-  actionsRow: { display: 'flex', gap: '12px', flexWrap: 'wrap' },
-  actionBtn: {
-    padding: '12px 20px',
-    color: '#fff',
+  timelineBy: {
+    margin: '4px 0 0',
+    fontSize: '12px',
+    color: '#9ca3af',
+  },
+  actionsRow: {
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  actionButton: {
+    padding: '10px 20px',
+    color: '#ffffff',
     border: 'none',
     borderRadius: '6px',
-    cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: 600,
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'opacity 0.2s',
   },
-  finalInfo: {
-    padding: '16px 20px',
-    background: '#f5f7fa',
+  finalBox: {
+    padding: '16px',
+    backgroundColor: '#dcfce7',
+    color: '#166534',
     borderRadius: '8px',
     textAlign: 'center',
-    marginTop: '8px',
-  },
-  finalText: {
-    margin: 0,
-    color: '#666',
     fontSize: '14px',
-    fontWeight: 600,
+    fontWeight: '500',
+  },
+  finalBoxError: {
+    padding: '16px',
+    backgroundColor: '#fee2e2',
+    color: '#991b1b',
+    borderRadius: '8px',
+    textAlign: 'center',
+    fontSize: '14px',
+    fontWeight: '500',
   },
   modalOverlay: {
     position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.5)',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -925,65 +730,84 @@ const styles = {
     padding: '20px',
   },
   modalBox: {
-    background: '#fff',
-    borderRadius: '12px',
-    padding: '28px',
-    maxWidth: '500px',
+    backgroundColor: '#ffffff',
+    borderRadius: '8px',
+    padding: '24px',
+    maxWidth: '450px',
     width: '100%',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
   },
-  modalTitle: { margin: '0 0 8px', color: '#0b3d6b', fontSize: '18px' },
+  modalTitle: {
+    margin: '0 0 8px',
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#111827',
+  },
   modalConfirmText: {
     margin: '0 0 20px',
-    color: '#666',
-    fontSize: '13px',
-    lineHeight: 1.5,
+    fontSize: '14px',
+    color: '#4b5563',
+    lineHeight: '1.5',
   },
-  modalField: {
+  field: {
     display: 'flex',
     flexDirection: 'column',
     gap: '6px',
     marginBottom: '16px',
   },
-  modalLabel: { fontSize: '13px', fontWeight: 600, color: '#333' },
-  modalTextarea: {
-    padding: '10px 12px',
+  label: {
     fontSize: '13px',
-    border: '1px solid #ccc',
+    fontWeight: '500',
+    color: '#374151',
+  },
+  textarea: {
+    padding: '10px 12px',
+    fontSize: '14px',
+    border: '1px solid #d1d5db',
     borderRadius: '6px',
     outline: 'none',
     fontFamily: 'inherit',
     resize: 'vertical',
   },
-  modalError: {
+  errorBox: {
     padding: '10px 12px',
-    background: '#fff5f5',
-    color: '#c0392b',
-    border: '1px solid #f5c6cb',
+    backgroundColor: '#fef2f2',
+    color: '#b91c1c',
+    border: '1px solid #fecaca',
     borderRadius: '6px',
-    fontSize: '12px',
+    fontSize: '13px',
     marginBottom: '16px',
   },
-  modalActions: { display: 'flex', justifyContent: 'flex-end', gap: '10px' },
-  modalCancelBtn: {
-    padding: '10px 20px',
-    background: '#fff',
-    color: '#666',
-    border: '1px solid #ccc',
+  successBox: {
+    padding: '10px 12px',
+    backgroundColor: '#dcfce7',
+    color: '#166534',
+    border: '1px solid #bbf7d0',
     borderRadius: '6px',
-    cursor: 'pointer',
     fontSize: '13px',
-    fontWeight: 600,
-    transition: 'background 0.2s ease',
+    marginTop: '12px',
   },
-  modalConfirmBtn: {
-    padding: '10px 20px',
-    color: '#fff',
-    border: 'none',
+  modalActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+  },
+  cancelBtn: {
+    padding: '10px 16px',
+    backgroundColor: '#ffffff',
+    color: '#4b5563',
+    border: '1px solid #d1d5db',
     borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
     cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: 600,
-    transition: 'opacity 0.2s ease',
   },
+  statePage: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    color: '#6b7280',
+  }
 };

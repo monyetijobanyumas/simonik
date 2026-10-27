@@ -1,191 +1,204 @@
 // ============================================================
 // SIMONIK - Report Type Page
 // File: src/pages/user/ReportTypePage.jsx
-// Deskripsi: Halaman pilih jenis infrastruktur (step 1)
 // ============================================================
 
 import { useNavigate, Link } from 'react-router-dom';
 
-// Data jenis infrastruktur
 const REPORT_TYPES = [
   {
     key: 'jalan',
-    icon: '🛣️',
-    label: 'Jalan',
-    description: 'Jalan berlubang, retak, atau mengalami kerusakan.',
+    title: 'Jalan',
+    description: 'Jalan berlubang, retak, atau mengalami kerusakan struktur.',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0b3d6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 22h16M4 2h16M9 22v-4M15 22v-4M9 6V2M15 6V2M9 14v-4M15 14v-4" />
+      </svg>
+    ),
   },
   {
     key: 'lampu',
-    icon: '💡',
-    label: 'Lampu Penerangan Jalan',
+    title: 'Lampu Penerangan Jalan',
     description: 'Lampu mati atau komponen penerangan mengalami kerusakan.',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0b3d6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 18h6M10 22h4M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+      </svg>
+    ),
   },
   {
     key: 'drainase',
-    icon: '🚰',
-    label: 'Drainase',
-    description: 'Drainase tersumbat, rusak, atau mengalami masalah aliran.',
+    title: 'Drainase',
+    description: 'Drainase tersumbat, rusak, atau mengalami masalah aliran air.',
+    icon: (
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0b3d6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+      </svg>
+    ),
   },
 ];
 
 export default function ReportTypePage() {
   const navigate = useNavigate();
 
-  function handleSelect(scope) {
-    navigate(`/user/create-report?scope=${scope}`);
-  }
-
   return (
-    <div style={styles.container}>
-      {/* Back link */}
-      <Link
-        to="/user/dashboard"
-        style={styles.backLink}
-        onMouseEnter={(e) => (e.target.style.color = '#1a5490')}
-        onMouseLeave={(e) => (e.target.style.color = '#0b3d6b')}
-      >
-        ← Kembali ke Dashboard
-      </Link>
+    <div style={styles.page}>
+      <div style={styles.container}>
+        <Link 
+          to="/user/dashboard" 
+          style={styles.backBtn}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e5e7eb')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Kembali ke Dashboard
+        </Link>
 
-      {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>Pilih Jenis Infrastruktur</h1>
-        <p style={styles.subtitle}>
-          Tentukan kategori masalah yang ingin Anda laporkan
-        </p>
-
-        {/* Step Indicator */}
-        <div style={styles.stepIndicator}>
-          <div style={styles.stepDotActive} />
-          <div style={styles.stepDot} />
-          <span style={styles.stepLabel}>Tahap 1 dari 2</span>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Pilih Jenis Infrastruktur</h1>
+          <p style={styles.subtitle}>Pilih kategori masalah yang ingin Anda laporkan</p>
+          
+          <div style={styles.stepIndicator}>
+            <div style={styles.stepDotActive} />
+            <div style={styles.stepLine} />
+            <div style={styles.stepDot} />
+            <span style={styles.stepLabel}>Langkah 1 dari 2</span>
+          </div>
         </div>
-      </div>
 
-      {/* Grid Jenis */}
-      <div style={styles.grid}>
-        {REPORT_TYPES.map((type) => (
-          <button
-            key={type.key}
-            onClick={() => handleSelect(type.key)}
-            style={styles.typeCard}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#0b3d6b';
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(11, 61, 107, 0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#e5e5e5';
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-            }}
-          >
-            <div style={styles.typeIcon}>{type.icon}</div>
-            <h2 style={styles.typeTitle}>{type.label}</h2>
-            <p style={styles.typeDesc}>{type.description}</p>
-            <div style={styles.typeArrow}>Pilih →</div>
-          </button>
-        ))}
+        <div style={styles.grid}>
+          {REPORT_TYPES.map((type) => (
+            <button
+              key={type.key}
+              onClick={() => navigate(`/user/create-report?scope=${type.key}`)}
+              style={styles.card}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#0b3d6b';
+                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#e5e5e5';
+                e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.05)';
+              }}
+            >
+              <div style={styles.iconWrapper}>{type.icon}</div>
+              <h2 style={styles.cardTitle}>{type.title}</h2>
+              <p style={styles.cardDesc}>{type.description}</p>
+              <div style={styles.cardAction}>Pilih Kategori</div>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 const styles = {
+  page: {
+    minHeight: '100vh',
+    backgroundColor: '#f5f7fa',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    padding: '40px 20px',
+  },
   container: {
     maxWidth: '900px',
     margin: '0 auto',
-    padding: '40px 20px',
-    fontFamily: 'system-ui, sans-serif',
   },
-  backLink: {
-    display: 'inline-block',
-    marginBottom: '20px',
-    color: '#0b3d6b',
+  backBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '6px 12px',
+    backgroundColor: 'transparent',
+    color: '#4b5563',
+    borderRadius: '6px',
     textDecoration: 'none',
     fontSize: '14px',
-    fontWeight: 600,
-    transition: 'color 0.2s ease',
+    fontWeight: '500',
+    marginBottom: '24px',
+    transition: 'background-color 0.2s',
   },
   header: {
     marginBottom: '32px',
   },
   title: {
-    margin: '0 0 6px',
-    color: '#0b3d6b',
+    margin: '0 0 4px',
     fontSize: '24px',
+    fontWeight: '600',
+    color: '#111827',
   },
   subtitle: {
-    margin: '0 0 16px',
-    color: '#666',
+    margin: '0 0 20px',
     fontSize: '14px',
+    color: '#6b7280',
   },
-  // Step indicator
   stepIndicator: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
+    gap: '8px',
   },
   stepDotActive: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    backgroundColor: '#0b3d6b',
+  },
+  stepLine: {
     width: '24px',
-    height: '8px',
-    borderRadius: '4px',
-    background: '#0b3d6b',
+    height: '2px',
+    backgroundColor: '#e5e5e5',
   },
   stepDot: {
-    width: '8px',
-    height: '8px',
+    width: '10px',
+    height: '10px',
     borderRadius: '50%',
-    background: '#ddd',
+    backgroundColor: '#e5e5e5',
   },
   stepLabel: {
-    marginLeft: '10px',
+    marginLeft: '8px',
     fontSize: '12px',
-    color: '#888',
-    fontStyle: 'italic',
+    color: '#6b7280',
+    fontWeight: '500',
   },
-  // Grid
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-    gap: '20px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gap: '16px',
   },
-  typeCard: {
-    background: '#fff',
+  card: {
+    backgroundColor: '#ffffff',
     border: '1px solid #e5e5e5',
-    borderRadius: '12px',
-    padding: '32px 24px',
-    textAlign: 'center',
+    borderRadius: '8px',
+    padding: '24px',
+    textAlign: 'left',
     cursor: 'pointer',
-    transition: 'border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-    fontFamily: 'inherit',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    gap: '12px',
+    fontFamily: 'inherit',
   },
-  typeIcon: {
-    fontSize: '48px',
+  iconWrapper: {
+    marginBottom: '16px',
   },
-  typeTitle: {
-    margin: 0,
+  cardTitle: {
+    margin: '0 0 8px',
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#111827',
+  },
+  cardDesc: {
+    margin: '0 0 24px',
+    fontSize: '14px',
+    color: '#6b7280',
+    lineHeight: '1.5',
+    flexGrow: 1,
+  },
+  cardAction: {
+    fontSize: '14px',
+    fontWeight: '600',
     color: '#0b3d6b',
-    fontSize: '17px',
-    fontWeight: 700,
-    lineHeight: 1.3,
-  },
-  typeDesc: {
-    margin: 0,
-    color: '#666',
-    fontSize: '13px',
-    lineHeight: 1.5,
-    flex: 1,
-  },
-  typeArrow: {
-    marginTop: '8px',
-    color: '#0b3d6b',
-    fontSize: '13px',
-    fontWeight: 700,
   },
 };

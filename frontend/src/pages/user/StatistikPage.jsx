@@ -1,7 +1,6 @@
 // ============================================================
 // SIMONIK - Statistik Page (User)
 // File: src/pages/user/StatistikPage.jsx
-// Deskripsi: Dashboard statistik laporan user
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -70,46 +69,40 @@ export default function StatistikPage() {
   }
 
   if (loading) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.stateBox}>
-          <p style={styles.stateText}>Memuat statistik...</p>
-        </div>
-      </div>
-    );
+    return <div style={styles.statePage}>Memuat statistik...</div>;
   }
 
   if (error) {
     return (
-      <div style={styles.container}>
-        <Link to="/user/dashboard" style={styles.backLink}>
-          ← Kembali ke Dashboard
-        </Link>
-        <div style={styles.errorBox}>
-          <p style={styles.errorText}>⚠️ {error}</p>
-          <button onClick={fetchReports} style={styles.retryBtn}>
-            Coba Lagi
-          </button>
+      <div style={styles.page}>
+        <div style={styles.container}>
+          <Link to="/user/dashboard" style={styles.backBtn}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            Kembali ke Dashboard
+          </Link>
+          <div style={styles.errorBox}>
+            <p>{error}</p>
+            <button onClick={fetchReports} style={styles.retryBtn}>Coba Lagi</button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ============ HITUNG DATA ============
-
-  // 1. Count per status
+  // Hitung data
   const statusCounts = {};
   Object.keys(STATUS_INFO).forEach((key) => {
     statusCounts[key] = reports.filter((r) => r.status === key).length;
   });
 
-  // 2. Count per scope
   const scopeCounts = {};
   Object.keys(SCOPE_INFO).forEach((key) => {
     scopeCounts[key] = reports.filter((r) => r.scope === key).length;
   });
 
-  // 3. Data 7 hari terakhir
   const last7Days = [];
   for (let i = 6; i >= 0; i--) {
     const date = new Date();
@@ -125,16 +118,15 @@ export default function StatistikPage() {
     });
   }
 
-  // ============ DATA CHART ============
-
+  // Konfigurasi Chart
   const statusChartData = {
     labels: Object.values(STATUS_INFO).map((s) => s.label),
     datasets: [
       {
         data: Object.keys(STATUS_INFO).map((key) => statusCounts[key]),
         backgroundColor: Object.values(STATUS_INFO).map((s) => s.color),
-        borderColor: '#fff',
-        borderWidth: 3,
+        borderColor: '#ffffff',
+        borderWidth: 2,
       },
     ],
   };
@@ -146,7 +138,7 @@ export default function StatistikPage() {
         label: 'Jumlah Laporan',
         data: Object.keys(SCOPE_INFO).map((key) => scopeCounts[key]),
         backgroundColor: Object.values(SCOPE_INFO).map((s) => s.color),
-        borderRadius: 6,
+        borderRadius: 4,
       },
     ],
   };
@@ -162,9 +154,9 @@ export default function StatistikPage() {
         tension: 0.4,
         fill: true,
         pointBackgroundColor: '#0b3d6b',
-        pointBorderColor: '#fff',
+        pointBorderColor: '#ffffff',
         pointBorderWidth: 2,
-        pointRadius: 5,
+        pointRadius: 4,
       },
     ],
   };
@@ -176,8 +168,8 @@ export default function StatistikPage() {
       legend: {
         position: 'bottom',
         labels: {
-          font: { size: 12 },
-          padding: 12,
+          font: { family: 'system-ui', size: 12 },
+          padding: 16,
           usePointStyle: true,
         },
       },
@@ -187,249 +179,240 @@ export default function StatistikPage() {
   const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-    },
+    plugins: { legend: { display: false } },
     scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { stepSize: 1 },
-      },
+      y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'system-ui' } }, grid: { color: '#f1f5f9' } },
+      x: { ticks: { font: { family: 'system-ui' } }, grid: { display: false } },
     },
   };
 
   const lineOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-    },
+    plugins: { legend: { display: false } },
     scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { stepSize: 1 },
-      },
+      y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'system-ui' } }, grid: { color: '#f1f5f9' } },
+      x: { ticks: { font: { family: 'system-ui' } }, grid: { display: false } },
     },
   };
 
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <Link
-            to="/user/dashboard"
-            style={styles.backLink}
-            onMouseEnter={(e) => (e.target.style.color = '#1a5490')}
-            onMouseLeave={(e) => (e.target.style.color = '#0b3d6b')}
-          >
-            ← Kembali ke Dashboard
-          </Link>
-          <h1 style={styles.title}>Statistik Laporan</h1>
-          <p style={styles.subtitle}>
-            Ringkasan data laporan Anda
-          </p>
-        </div>
-        <button
-          onClick={fetchReports}
-          style={styles.refreshBtn}
-          onMouseEnter={(e) => (e.target.style.color = '#1a5490')}
-          onMouseLeave={(e) => (e.target.style.color = '#0b3d6b')}
+    <div style={styles.page}>
+      <div style={styles.container}>
+        
+        {/* Header */}
+        <Link 
+          to="/user/dashboard" 
+          style={styles.backBtn}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e5e7eb')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
-          ↻ Refresh
-        </button>
-      </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Kembali ke Dashboard
+        </Link>
 
-      {/* Empty */}
-      {reports.length === 0 ? (
-        <div style={styles.emptyBox}>
-          <div style={styles.emptyIcon}>📊</div>
-          <p style={styles.emptyTitle}>Belum ada data</p>
-          <p style={styles.emptyText}>
-            Belum ada laporan untuk ditampilkan statistiknya.
-          </p>
+        <div style={styles.header}>
+          <div>
+            <h1 style={styles.title}>Statistik Laporan</h1>
+            <p style={styles.subtitle}>Ringkasan data laporan yang telah Anda buat</p>
+          </div>
+          <button onClick={fetchReports} style={styles.refreshBtn}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            Refresh
+          </button>
         </div>
-      ) : (
-        <>
-          {/* Summary Cards */}
-          <div style={styles.summaryGrid}>
-            <div style={styles.summaryCard}>
-              <div style={styles.summaryLabel}>Total Laporan</div>
-              <div style={styles.summaryValue}>{reports.length}</div>
-            </div>
-            {Object.entries(STATUS_INFO).map(([key, info]) => (
-              <div key={key} style={styles.summaryCard}>
-                <div
-                  style={{
-                    ...styles.summaryLabel,
-                    color: info.color,
-                  }}
-                >
-                  {info.label}
-                </div>
-                <div
-                  style={{
-                    ...styles.summaryValue,
-                    color: info.color,
-                  }}
-                >
-                  {statusCounts[key]}
-                </div>
+
+        {reports.length === 0 ? (
+          <div style={styles.emptyBox}>Belum ada data laporan untuk ditampilkan statistiknya.</div>
+        ) : (
+          <>
+            {/* Summary Cards */}
+            <div style={styles.summaryGrid}>
+              <div style={styles.summaryCard}>
+                <div style={styles.summaryLabel}>Total Laporan</div>
+                <div style={styles.summaryValue}>{reports.length}</div>
               </div>
-            ))}
-          </div>
-
-          {/* Chart 1: Status (Doughnut) */}
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>Laporan per Status</h2>
-            <div style={styles.chartWrapper}>
-              <Doughnut data={statusChartData} options={chartOptions} />
+              {Object.entries(STATUS_INFO).map(([key, info]) => (
+                <div key={key} style={styles.summaryCard}>
+                  <div style={{ ...styles.summaryLabel, color: info.color }}>
+                    {info.label}
+                  </div>
+                  <div style={{ ...styles.summaryValue, color: info.color }}>
+                    {statusCounts[key]}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
 
-          {/* Chart 2: Scope (Bar) */}
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>Laporan per Jenis Infrastruktur</h2>
-            <div style={styles.chartWrapper}>
-              <Bar data={scopeChartData} options={barOptions} />
+            {/* Chart 1: Status (Doughnut) */}
+            <div style={styles.card}>
+              <h2 style={styles.sectionTitle}>Laporan per Status</h2>
+              <div style={styles.chartWrapper}>
+                <Doughnut data={statusChartData} options={chartOptions} />
+              </div>
             </div>
-          </div>
 
-          {/* Chart 3: Trend 7 Hari (Line) */}
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>Tren 7 Hari Terakhir</h2>
-            <div style={styles.chartWrapper}>
-              <Line data={trendChartData} options={lineOptions} />
+            {/* Chart 2: Scope (Bar) */}
+            <div style={styles.card}>
+              <h2 style={styles.sectionTitle}>Laporan per Jenis Infrastruktur</h2>
+              <div style={styles.chartWrapper}>
+                <Bar data={scopeChartData} options={barOptions} />
+              </div>
             </div>
-          </div>
-        </>
-      )}
+
+            {/* Chart 3: Trend 7 Hari (Line) */}
+            <div style={styles.card}>
+              <h2 style={styles.sectionTitle}>Tren 7 Hari Terakhir</h2>
+              <div style={styles.chartWrapper}>
+                <Line data={trendChartData} options={lineOptions} />
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
 const styles = {
+  page: {
+    minHeight: '100vh',
+    backgroundColor: '#f5f7fa',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    padding: '40px 20px',
+  },
   container: {
     maxWidth: '900px',
     margin: '0 auto',
-    padding: '40px 20px',
-    fontFamily: 'system-ui, sans-serif',
+  },
+  backBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '6px 12px',
+    backgroundColor: 'transparent',
+    color: '#4b5563',
+    borderRadius: '6px',
+    textDecoration: 'none',
+    fontSize: '14px',
+    fontWeight: '500',
+    marginBottom: '24px',
+    transition: 'background-color 0.2s',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: '24px',
-    gap: '16px',
-    flexWrap: 'wrap',
   },
-  backLink: {
-    display: 'inline-block',
-    marginBottom: '8px',
-    color: '#0b3d6b',
-    textDecoration: 'none',
+  title: {
+    margin: '0 0 4px',
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#111827',
+  },
+  subtitle: {
+    margin: 0,
     fontSize: '14px',
-    fontWeight: 600,
-    transition: 'color 0.2s ease',
+    color: '#6b7280',
   },
-  title: { margin: 0, color: '#0b3d6b', fontSize: '24px' },
-  subtitle: { margin: '4px 0 0', color: '#666', fontSize: '14px' },
   refreshBtn: {
-    padding: '8px 14px',
-    background: 'transparent',
-    color: '#0b3d6b',
-    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    padding: '8px 16px',
+    backgroundColor: '#ffffff',
+    color: '#4b5563',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
     cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: 600,
-    transition: 'color 0.2s ease',
-    flexShrink: 0,
+    boxShadow: '0 1px 3px 0 rgba(0,0,0,0.05)',
   },
   summaryGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
     gap: '12px',
-    marginBottom: '20px',
+    marginBottom: '24px',
   },
   summaryCard: {
-    background: '#fff',
+    backgroundColor: '#ffffff',
     border: '1px solid #e5e5e5',
     borderRadius: '8px',
     padding: '16px',
     textAlign: 'center',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    boxShadow: '0 1px 3px 0 rgba(0,0,0,0.05)',
   },
   summaryLabel: {
     fontSize: '11px',
-    color: '#666',
+    color: '#6b7280',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
-    fontWeight: 700,
-    marginBottom: '6px',
+    fontWeight: '600',
+    marginBottom: '8px',
   },
   summaryValue: {
     fontSize: '24px',
     color: '#0b3d6b',
-    fontWeight: 800,
+    fontWeight: '700',
     lineHeight: 1,
   },
   card: {
-    background: '#fff',
+    backgroundColor: '#ffffff',
     border: '1px solid #e5e5e5',
     borderRadius: '8px',
-    padding: '20px 24px',
+    padding: '24px',
     marginBottom: '16px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    boxShadow: '0 1px 3px 0 rgba(0,0,0,0.05)',
   },
   sectionTitle: {
-    margin: '0 0 16px',
-    color: '#0b3d6b',
-    fontSize: '13px',
-    fontWeight: 700,
+    margin: '0 0 20px',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#374151',
     textTransform: 'uppercase',
-    letterSpacing: '0.7px',
+    letterSpacing: '0.5px',
   },
   chartWrapper: {
     position: 'relative',
     height: '280px',
   },
-  stateBox: {
-    padding: '60px 20px',
+  emptyBox: {
+    padding: '60px',
     textAlign: 'center',
-    color: '#888',
+    backgroundColor: '#ffffff',
+    borderRadius: '8px',
+    border: '1px solid #e5e5e5',
+    color: '#6b7280',
   },
-  stateText: { fontSize: '14px', fontStyle: 'italic' },
   errorBox: {
     padding: '20px',
-    background: '#fff5f5',
-    border: '1px solid #f5c6cb',
+    backgroundColor: '#fef2f2',
+    color: '#b91c1c',
     borderRadius: '8px',
     textAlign: 'center',
   },
-  errorText: { margin: '0 0 12px', color: '#c0392b', fontSize: '14px' },
   retryBtn: {
+    marginTop: '12px',
     padding: '8px 16px',
-    background: '#c0392b',
-    color: '#fff',
+    backgroundColor: '#b91c1c',
+    color: '#ffffff',
     border: 'none',
     borderRadius: '6px',
     cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: 600,
+    fontWeight: '500',
   },
-  emptyBox: {
-    padding: '60px 20px',
-    textAlign: 'center',
-    background: '#fff',
-    borderRadius: '8px',
-    border: '1px dashed #ccc',
-  },
-  emptyIcon: { fontSize: '48px', marginBottom: '12px' },
-  emptyTitle: {
-    margin: '0 0 4px',
-    color: '#333',
-    fontSize: '16px',
-    fontWeight: 600,
-  },
-  emptyText: { margin: 0, color: '#888', fontSize: '13px' },
+  statePage: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    color: '#6b7280',
+  }
 };

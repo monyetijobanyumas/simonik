@@ -1,7 +1,6 @@
 // ============================================================
 // SIMONIK - Report Detail Page (User)
 // File: src/pages/user/ReportDetailPage.jsx
-// Deskripsi: Halaman detail laporan user + timeline + foto terpisah
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -11,7 +10,6 @@ import L from 'leaflet';
 import api from '../../api/axios';
 import { formatFullDate, formatRelativeTime } from '../../utils/formatDate';
 
-// Fix ikon marker Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -19,18 +17,18 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const SCOPE_INFO = {
-  jalan: { label: 'Jalan', icon: '🛣️' },
-  lampu: { label: 'Lampu Penerangan Jalan', icon: '💡' },
-  drainase: { label: 'Drainase', icon: '🚰' },
+const SCOPE_LABEL = {
+  jalan: 'Jalan',
+  lampu: 'Lampu Penerangan Jalan',
+  drainase: 'Drainase',
 };
 
 const STATUS_INFO = {
-  DIAJUKAN: { label: 'Diajukan', color: '#f39c12', bg: '#fef5e7' },
-  DIVERIFIKASI: { label: 'Diverifikasi', color: '#3498db', bg: '#eaf4fb' },
-  DIPROSES: { label: 'Diproses', color: '#9b59b6', bg: '#f4ecf7' },
-  SELESAI: { label: 'Selesai', color: '#27ae60', bg: '#eafaf1' },
-  DITOLAK: { label: 'Ditolak', color: '#c0392b', bg: '#fff5f5' },
+  DIAJUKAN: { label: 'Submitted', color: '#f39c12', bg: '#fef3c7' },
+  DIVERIFIKASI: { label: 'Verified', color: '#3498db', bg: '#dbeafe' },
+  DIPROSES: { label: 'In Progress', color: '#9b59b6', bg: '#f3e8ff' },
+  SELESAI: { label: 'Completed', color: '#27ae60', bg: '#dcfce7' },
+  DITOLAK: { label: 'Rejected', color: '#c0392b', bg: '#fee2e2' },
 };
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
@@ -46,7 +44,6 @@ export default function ReportDetailPage() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line
   }, [id]);
 
   async function fetchData() {
@@ -62,249 +59,161 @@ export default function ReportDetailPage() {
       setHistory(historyRes.data.data.history);
       setAttachments(attachRes.data.data.attachments || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Gagal memuat detail laporan.');
+      setError(err.response?.data?.message || 'Failed to load report details.');
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.stateBox}>
-          <p style={styles.stateText}>Memuat detail laporan...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div style={styles.statePage}>Loading report details...</div>;
+  if (error || !report) return <div style={styles.statePage}>{error || 'Report not found.'}</div>;
 
-  if (error || !report) {
-    return (
-      <div style={styles.container}>
-        <Link to="/user/my-reports" style={styles.backLink}>
-          ← Kembali ke Laporan Saya
-        </Link>
-        <div style={styles.errorBox}>
-          <p style={styles.errorText}>⚠️ {error || 'Laporan tidak ditemukan'}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const scopeInfo = SCOPE_INFO[report.scope] || { label: report.scope, icon: '📍' };
-  const statusInfo = STATUS_INFO[report.status] || {
-    label: report.status,
-    color: '#666',
-    bg: '#f5f5f5',
-  };
+  const statusInfo = STATUS_INFO[report.status] || { label: report.status, color: '#666', bg: '#f1f5f9' };
   const position = [Number(report.latitude), Number(report.longitude)];
 
   const fotoLaporan = attachments.filter((a) => a.type === 'laporan');
   const fotoBukti = attachments.filter((a) => a.type === 'bukti');
 
   return (
-    <div style={styles.container}>
-      <Link
-        to="/user/my-reports"
-        style={styles.backLink}
-        onMouseEnter={(e) => (e.target.style.color = '#1a5490')}
-        onMouseLeave={(e) => (e.target.style.color = '#0b3d6b')}
-      >
-        ← Kembali ke Laporan Saya
-      </Link>
+    <div style={styles.page}>
+      <div style={styles.container}>
+        <Link to="/user/my-reports" style={styles.backLink}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Back to My Reports
+        </Link>
 
-      {/* Card: Header Info */}
-      <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <div style={styles.scopeBadge}>
-            <span style={styles.scopeIcon}>{scopeInfo.icon}</span>
-            <span style={styles.scopeLabel}>{scopeInfo.label}</span>
-          </div>
-          <span
-            style={{
-              ...styles.statusBadge,
-              color: statusInfo.color,
-              background: statusInfo.bg,
-            }}
-          >
-            {statusInfo.label}
-          </span>
-        </div>
-
-        <h1 style={styles.title}>{report.title}</h1>
-        <p style={styles.meta}>🕐 Dibuat {formatRelativeTime(report.created_at)}</p>
-      </div>
-
-      {/* Card: Deskripsi */}
-      <div style={styles.card}>
-        <h2 style={styles.sectionTitle}>Deskripsi</h2>
-        <p style={styles.description}>{report.description}</p>
-      </div>
-
-      {/* Card: Foto Laporan (dari User) */}
-      {fotoLaporan.length > 0 && (
+        {/* Header Card */}
         <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>Foto Laporan ({fotoLaporan.length})</h2>
-          <div style={styles.photoGrid}>
-            {fotoLaporan.map((att) => (
-              <a
-                key={att.id}
-                href={`${API_BASE}${att.file_url}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={styles.photoItem}
-              >
-                <img
-                  src={`${API_BASE}${att.file_url}`}
-                  alt="Foto laporan"
-                  style={styles.photoImg}
-                  loading="lazy"
-                />
-                <span style={styles.photoType}>📷 Laporan</span>
-              </a>
-            ))}
+          <div style={styles.cardHeader}>
+            <span style={styles.scopeLabel}>{SCOPE_LABEL[report.scope] || report.scope}</span>
+            <span style={{ ...styles.statusBadge, color: statusInfo.color, backgroundColor: statusInfo.bg }}>
+              {statusInfo.label}
+            </span>
           </div>
+          <h1 style={styles.title}>{report.title}</h1>
+          <p style={styles.meta}>Submitted {formatRelativeTime(report.created_at)}</p>
         </div>
-      )}
 
-      {/* Card: Bukti Penyelesaian (dari Petugas) */}
-      {fotoBukti.length > 0 && (
+        {/* Description Card */}
         <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>✓ Bukti Penyelesaian ({fotoBukti.length})</h2>
-          <div style={styles.photoGrid}>
-            {fotoBukti.map((att) => (
-              <a
-                key={att.id}
-                href={`${API_BASE}${att.file_url}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={styles.photoItem}
-              >
-                <img
-                  src={`${API_BASE}${att.file_url}`}
-                  alt="Bukti penyelesaian"
-                  style={styles.photoImg}
-                  loading="lazy"
-                />
-                <span
-                  style={{
-                    ...styles.photoType,
-                    background: 'rgba(39, 174, 96, 0.85)',
-                  }}
-                >
-                  ✓ Bukti
-                </span>
-              </a>
-            ))}
-          </div>
+          <h2 style={styles.sectionTitle}>Description</h2>
+          <p style={styles.description}>{report.description}</p>
         </div>
-      )}
 
-      {/* Card: Lokasi */}
-      <div style={styles.card}>
-        <h2 style={styles.sectionTitle}>Lokasi</h2>
-        <p style={styles.coordText}>
-          📌 {Number(report.latitude).toFixed(5)}, {Number(report.longitude).toFixed(5)}
-        </p>
-        <div style={styles.mapWrapper}>
-          <MapContainer
-            center={position}
-            zoom={16}
-            style={styles.map}
-            scrollWheelZoom={false}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Marker position={position} />
-          </MapContainer>
-        </div>
-      </div>
-
-      {/* Card: Timeline */}
-      <div style={styles.card}>
-        <h2 style={styles.sectionTitle}>Riwayat Status</h2>
-        <div style={styles.timeline}>
-          {history.map((item, index) => {
-            const info = STATUS_INFO[item.status] || {
-              label: item.status,
-              color: '#666',
-              bg: '#f5f5f5',
-            };
-            const isLast = index === history.length - 1;
-
-            return (
-              <div key={item.id} style={styles.timelineItem}>
-                <div style={styles.timelineLeft}>
-                  <div style={{ ...styles.timelineDot, background: info.color }} />
-                  {!isLast && <div style={styles.timelineLine} />}
-                </div>
-                <div style={styles.timelineContent}>
-                  <div style={styles.timelineHeader}>
-                    <span
-                      style={{
-                        ...styles.timelineStatus,
-                        color: info.color,
-                        background: info.bg,
-                      }}
-                    >
-                      {info.label}
-                    </span>
-                    <span style={styles.timelineTime}>
-                      {formatFullDate(item.changed_at)}
-                    </span>
-                  </div>
-                  {item.note && <p style={styles.timelineNote}>{item.note}</p>}
-                  {item.changed_by_name && (
-                    <p style={styles.timelineBy}>
-                      oleh <strong>{item.changed_by_name}</strong> ({item.changed_by_role})
-                    </p>
-                  )}
+        {/* Photos Card */}
+        {(fotoLaporan.length > 0 || fotoBukti.length > 0) && (
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>Attachments</h2>
+            
+            {fotoLaporan.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <p style={styles.photoLabel}>User Photos ({fotoLaporan.length})</p>
+                <div style={styles.photoGrid}>
+                  {fotoLaporan.map((att) => (
+                    <a key={att.id} href={`${API_BASE}${att.file_url}`} target="_blank" rel="noopener noreferrer" style={styles.photoItem}>
+                      <img src={`${API_BASE}${att.file_url}`} alt="Report" style={styles.photoImg} />
+                    </a>
+                  ))}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
+            )}
 
-      {/* Info final status */}
-      {(report.status === 'SELESAI' || report.status === 'DITOLAK') && (
-        <div style={styles.finalInfo}>
-          <p style={styles.finalText}>
-            {report.status === 'SELESAI'
-              ? '✅ Laporan ini sudah selesai ditangani.'
-              : '❌ Laporan ini ditolak. Silakan hubungi dinas untuk info lebih lanjut.'}
-          </p>
+            {fotoBukti.length > 0 && (
+              <div>
+                <p style={styles.photoLabel}>Completion Evidence ({fotoBukti.length})</p>
+                <div style={styles.photoGrid}>
+                  {fotoBukti.map((att) => (
+                    <a key={att.id} href={`${API_BASE}${att.file_url}`} target="_blank" rel="noopener noreferrer" style={styles.photoItem}>
+                      <img src={`${API_BASE}${att.file_url}`} alt="Evidence" style={styles.photoImg} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Location Card */}
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>Location</h2>
+          <p style={styles.coordText}>{Number(report.latitude).toFixed(5)}, {Number(report.longitude).toFixed(5)}</p>
+          <div style={styles.mapWrapper}>
+            <MapContainer center={position} zoom={16} style={styles.map} scrollWheelZoom={false}>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <Marker position={position} />
+            </MapContainer>
+          </div>
         </div>
-      )}
+
+        {/* Timeline Card */}
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>Status History</h2>
+          <div style={styles.timeline}>
+            {history.map((item, index) => {
+              const info = STATUS_INFO[item.status] || { label: item.status, color: '#666', bg: '#f1f5f9' };
+              const isLast = index === history.length - 1;
+              return (
+                <div key={item.id} style={styles.timelineItem}>
+                  <div style={styles.timelineLeft}>
+                    <div style={{ ...styles.timelineDot, backgroundColor: info.color }} />
+                    {!isLast && <div style={styles.timelineLine} />}
+                  </div>
+                  <div style={styles.timelineContent}>
+                    <div style={styles.timelineHeader}>
+                      <span style={{ ...styles.timelineStatus, color: info.color, backgroundColor: info.bg }}>{info.label}</span>
+                      <span style={styles.timelineTime}>{formatFullDate(item.changed_at)}</span>
+                    </div>
+                    {item.note && <p style={styles.timelineNote}>{item.note}</p>}
+                    {item.changed_by_name && <p style={styles.timelineBy}>by {item.changed_by_name}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {report.status === 'SELESAI' && (
+          <div style={styles.finalBox}>This report has been completed.</div>
+        )}
+        {report.status === 'DITOLAK' && (
+          <div style={styles.finalBoxError}>This report has been rejected. Please contact the relevant department for more information.</div>
+        )}
+
+      </div>
     </div>
   );
 }
 
 const styles = {
+  page: {
+    minHeight: '100vh',
+    backgroundColor: '#f5f7fa',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    padding: '40px 20px',
+  },
   container: {
     maxWidth: '800px',
     margin: '0 auto',
-    padding: '40px 20px',
-    fontFamily: 'system-ui, sans-serif',
   },
   backLink: {
-    display: 'inline-block',
-    marginBottom: '20px',
-    color: '#0b3d6b',
+    display: 'inline-flex',
+    alignItems: 'center',
+    color: '#4b5563',
     textDecoration: 'none',
     fontSize: '14px',
-    fontWeight: 600,
-    transition: 'color 0.2s ease',
+    fontWeight: '500',
+    marginBottom: '24px',
   },
   card: {
-    background: '#fff',
+    backgroundColor: '#ffffff',
     border: '1px solid #e5e5e5',
     borderRadius: '8px',
-    padding: '20px 24px',
+    padding: '24px',
     marginBottom: '16px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    boxShadow: '0 1px 3px 0 rgba(0,0,0,0.05)',
   },
   cardHeader: {
     display: 'flex',
@@ -312,78 +221,62 @@ const styles = {
     alignItems: 'center',
     marginBottom: '12px',
   },
-  scopeBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
+  scopeLabel: {
     fontSize: '13px',
-    color: '#666',
-    fontWeight: 600,
+    fontWeight: '600',
+    color: '#4b5563',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
   },
-  scopeIcon: { fontSize: '20px' },
-  scopeLabel: { letterSpacing: '0.3px' },
   statusBadge: {
-    padding: '6px 14px',
-    borderRadius: '14px',
     fontSize: '12px',
-    fontWeight: 700,
-    letterSpacing: '0.3px',
+    padding: '4px 10px',
+    borderRadius: '9999px',
+    fontWeight: '600',
   },
   title: {
-    margin: '0 0 6px',
-    color: '#0b3d6b',
+    margin: '0 0 8px',
     fontSize: '22px',
-    lineHeight: 1.3,
+    fontWeight: '600',
+    color: '#111827',
+    lineHeight: '1.3',
   },
   meta: {
-    margin: '0',
-    color: '#888',
+    margin: '0 0 4px',
     fontSize: '13px',
-    fontStyle: 'italic',
+    color: '#6b7280',
   },
   sectionTitle: {
-    margin: '0 0 12px',
-    color: '#0b3d6b',
-    fontSize: '13px',
-    fontWeight: 700,
+    margin: '0 0 16px',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#374151',
     textTransform: 'uppercase',
-    letterSpacing: '0.7px',
+    letterSpacing: '0.5px',
   },
   description: {
     margin: 0,
-    color: '#333',
     fontSize: '14px',
-    lineHeight: 1.7,
+    color: '#1f2937',
+    lineHeight: '1.6',
   },
-  coordText: {
-    margin: '0 0 12px',
-    color: '#333',
+  photoLabel: {
+    margin: '0 0 8px',
     fontSize: '13px',
-    fontFamily: 'monospace',
-  },
-  mapWrapper: {
-    height: '280px',
-    borderRadius: '6px',
-    overflow: 'hidden',
-    border: '1px solid #e5e5e5',
-  },
-  map: {
-    height: '100%',
-    width: '100%',
+    color: '#6b7280',
+    fontWeight: '500',
   },
   photoGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-    gap: '10px',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+    gap: '12px',
   },
   photoItem: {
-    position: 'relative',
     display: 'block',
-    borderRadius: '8px',
+    borderRadius: '6px',
     overflow: 'hidden',
+    aspectRatio: '1',
     border: '1px solid #e5e5e5',
-    aspectRatio: '1 / 1',
-    textDecoration: 'none',
   },
   photoImg: {
     width: '100%',
@@ -391,33 +284,31 @@ const styles = {
     objectFit: 'cover',
     display: 'block',
   },
-  photoType: {
-    position: 'absolute',
-    bottom: '6px',
-    left: '6px',
-    padding: '2px 8px',
-    background: 'rgba(0,0,0,0.65)',
-    color: '#fff',
-    fontSize: '10px',
-    fontWeight: 700,
-    borderRadius: '10px',
+  coordText: {
+    margin: '0 0 12px',
+    fontSize: '14px',
+    color: '#4b5563',
+    fontFamily: 'monospace',
   },
-  stateBox: {
-    padding: '60px 20px',
-    textAlign: 'center',
-    color: '#888',
-  },
-  stateText: { fontSize: '14px', fontStyle: 'italic' },
-  errorBox: {
-    padding: '20px',
-    background: '#fff5f5',
-    border: '1px solid #f5c6cb',
+  mapWrapper: {
+    height: '250px',
     borderRadius: '8px',
-    textAlign: 'center',
+    overflow: 'hidden',
+    border: '1px solid #e5e5e5',
   },
-  errorText: { margin: 0, color: '#c0392b', fontSize: '14px' },
-  timeline: { display: 'flex', flexDirection: 'column' },
-  timelineItem: { display: 'flex', gap: '16px', minHeight: '60px' },
+  map: {
+    height: '100%',
+    width: '100%',
+  },
+  timeline: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  timelineItem: {
+    display: 'flex',
+    gap: '16px',
+    minHeight: '60px',
+  },
   timelineLeft: {
     display: 'flex',
     flexDirection: 'column',
@@ -425,20 +316,21 @@ const styles = {
     paddingTop: '4px',
   },
   timelineDot: {
-    width: '14px',
-    height: '14px',
+    width: '12px',
+    height: '12px',
     borderRadius: '50%',
     flexShrink: 0,
-    border: '3px solid #fff',
-    boxShadow: '0 0 0 1px #e5e5e5',
   },
   timelineLine: {
     width: '2px',
     flex: 1,
-    background: '#e5e5e5',
+    backgroundColor: '#e5e5e5',
     margin: '4px 0',
   },
-  timelineContent: { flex: 1, paddingBottom: '20px' },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: '20px',
+  },
   timelineHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -448,30 +340,49 @@ const styles = {
     gap: '8px',
   },
   timelineStatus: {
-    padding: '3px 10px',
-    borderRadius: '12px',
+    padding: '2px 8px',
+    borderRadius: '4px',
     fontSize: '11px',
-    fontWeight: 700,
+    fontWeight: '600',
   },
-  timelineTime: { fontSize: '11px', color: '#888' },
+  timelineTime: {
+    fontSize: '12px',
+    color: '#6b7280',
+  },
   timelineNote: {
     margin: '4px 0 0',
-    color: '#333',
     fontSize: '13px',
-    lineHeight: 1.5,
+    color: '#374151',
   },
-  timelineBy: { margin: '4px 0 0', color: '#888', fontSize: '11px' },
-  finalInfo: {
-    padding: '16px 20px',
-    background: '#f5f7fa',
+  timelineBy: {
+    margin: '4px 0 0',
+    fontSize: '12px',
+    color: '#9ca3af',
+  },
+  finalBox: {
+    padding: '16px',
+    backgroundColor: '#dcfce7',
+    color: '#166534',
     borderRadius: '8px',
     textAlign: 'center',
-    marginTop: '8px',
-  },
-  finalText: {
-    margin: 0,
-    color: '#666',
     fontSize: '14px',
-    fontWeight: 600,
+    fontWeight: '500',
   },
+  finalBoxError: {
+    padding: '16px',
+    backgroundColor: '#fee2e2',
+    color: '#991b1b',
+    borderRadius: '8px',
+    textAlign: 'center',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  statePage: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    color: '#6b7280',
+  }
 };

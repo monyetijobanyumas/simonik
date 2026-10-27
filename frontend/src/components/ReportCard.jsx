@@ -1,79 +1,56 @@
 // ============================================================
 // SIMONIK - Report Card Component
 // File: src/components/ReportCard.jsx
-// Deskripsi: Kartu laporan untuk ditampilkan di list
 // ============================================================
 
 import { formatRelativeTime } from '../utils/formatDate';
 
-// Mapping scope → label & ikon
-const SCOPE_INFO = {
-  jalan: { label: 'Jalan', icon: '🛣️' },
-  lampu: { label: 'Lampu Penerangan', icon: '💡' },
-  drainase: { label: 'Drainase', icon: '🚰' },
+const SCOPE_LABEL = {
+  jalan: 'Jalan',
+  lampu: 'Lampu Penerangan',
+  drainase: 'Drainase',
 };
 
-// Mapping status → label & warna
-const STATUS_INFO = {
-  DIAJUKAN: { label: 'Diajukan', color: '#f39c12', bg: '#fef5e7' },
-  DIVERIFIKASI: { label: 'Diverifikasi', color: '#3498db', bg: '#eaf4fb' },
-  DIPROSES: { label: 'Diproses', color: '#9b59b6', bg: '#f4ecf7' },
-  SELESAI: { label: 'Selesai', color: '#27ae60', bg: '#eafaf1' },
-  DITOLAK: { label: 'Ditolak', color: '#c0392b', bg: '#fff5f5' },
+const STATUS_STYLE = {
+  DIAJUKAN: { label: 'Diajukan', bg: '#fef3c7', color: '#92400e' },
+  DIVERIFIKASI: { label: 'Diverifikasi', bg: '#dbeafe', color: '#1e40af' },
+  DIPROSES: { label: 'Diproses', bg: '#f3e8ff', color: '#6b21a8' },
+  SELESAI: { label: 'Selesai', bg: '#dcfce7', color: '#166534' },
+  DITOLAK: { label: 'Ditolak', bg: '#fee2e2', color: '#991b1b' },
 };
 
 export default function ReportCard({ report, onClick }) {
-  const scopeInfo = SCOPE_INFO[report.scope] || { label: report.scope, icon: '📍' };
-  const statusInfo = STATUS_INFO[report.status] || {
-    label: report.status,
-    color: '#666',
-    bg: '#f5f5f5',
-  };
+  const scopeLabel = SCOPE_LABEL[report.scope] || report.scope;
+  const statusInfo = STATUS_STYLE[report.status] || { label: report.status, bg: '#f1f5f9', color: '#475569' };
 
   return (
     <div
       style={styles.card}
       onClick={onClick}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.borderColor = '#0b3d6b';
+        e.currentTarget.style.borderColor = '#d1d5db';
+        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-        e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.borderColor = '#e5e5e5';
+        e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.05)';
       }}
     >
       <div style={styles.header}>
-        <div style={styles.scopeBadge}>
-          <span style={styles.scopeIcon}>{scopeInfo.icon}</span>
-          <span style={styles.scopeLabel}>{scopeInfo.label}</span>
-        </div>
-        <span
-          style={{
-            ...styles.statusBadge,
-            color: statusInfo.color,
-            background: statusInfo.bg,
-          }}
-        >
+        <span style={styles.scopeLabel}>{scopeLabel}</span>
+        <span style={{ ...styles.statusBadge, backgroundColor: statusInfo.bg, color: statusInfo.color }}>
           {statusInfo.label}
         </span>
       </div>
 
       <h3 style={styles.title}>{report.title}</h3>
-
-      <p style={styles.description}>
-        {report.description.length > 100
-          ? report.description.substring(0, 100) + '...'
-          : report.description}
-      </p>
+      <p style={styles.description}>{report.description}</p>
 
       <div style={styles.footer}>
-        <span style={styles.time}>🕐 {formatRelativeTime(report.created_at)}</span>
+        <span style={styles.meta}>{formatRelativeTime(report.created_at)}</span>
         {report.latitude != null && (
-          <span style={styles.coord}>
-            📌 {Number(report.latitude).toFixed(4)}, {Number(report.longitude).toFixed(4)}
+          <span style={styles.metaCoords}>
+            {Number(report.latitude).toFixed(4)}, {Number(report.longitude).toFixed(4)}
           </span>
         )}
       </div>
@@ -83,67 +60,66 @@ export default function ReportCard({ report, onClick }) {
 
 const styles = {
   card: {
-    background: '#fff',
-    padding: '16px 20px',
-    borderRadius: '8px',
+    backgroundColor: '#ffffff',
     border: '1px solid #e5e5e5',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-    cursor: 'pointer',
-    transition: 'box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease',
+    borderRadius: '8px',
+    padding: '16px 20px',
     marginBottom: '12px',
+    cursor: 'pointer',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '10px',
-  },
-  scopeBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    fontSize: '12px',
-    color: '#666',
-    fontWeight: 600,
-  },
-  scopeIcon: {
-    fontSize: '16px',
+    marginBottom: '12px',
   },
   scopeLabel: {
-    letterSpacing: '0.3px',
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#4b5563',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
   },
   statusBadge: {
-    padding: '4px 10px',
-    borderRadius: '12px',
-    fontSize: '11px',
-    fontWeight: 700,
-    letterSpacing: '0.3px',
+    fontSize: '12px',
+    padding: '2px 10px',
+    borderRadius: '9999px',
+    fontWeight: '500',
   },
   title: {
     margin: '0 0 6px',
-    color: '#0b3d6b',
     fontSize: '16px',
-    fontWeight: 600,
-    lineHeight: 1.3,
+    fontWeight: '600',
+    color: '#111827',
+    lineHeight: '1.4',
   },
   description: {
-    margin: '0 0 12px',
-    color: '#666',
-    fontSize: '13px',
-    lineHeight: 1.5,
+    margin: '0 0 16px',
+    fontSize: '14px',
+    color: '#6b7280',
+    lineHeight: '1.5',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
   },
   footer: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    fontSize: '11px',
-    color: '#888',
+    borderTop: '1px solid #f1f5f9',
+    paddingTop: '12px',
+    marginTop: 'auto',
   },
-  time: {
-    fontStyle: 'italic',
+  meta: {
+    fontSize: '12px',
+    color: '#9ca3af',
   },
-  coord: {
+  metaCoords: {
+    fontSize: '12px',
+    color: '#9ca3af',
     fontFamily: 'monospace',
-    color: '#999',
-  },
+  }
 };

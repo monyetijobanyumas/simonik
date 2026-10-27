@@ -1,18 +1,11 @@
 // ============================================================
 // SIMONIK - Create Report Page (Step 2)
 // File: src/pages/user/CreateReportPage.jsx
-// Deskripsi: Form detail laporan + upload foto (maks 3)
 // ============================================================
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  useMapEvents,
-  useMap,
-} from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../../api/axios';
 
@@ -24,9 +17,9 @@ L.Icon.Default.mergeOptions({
 });
 
 const SCOPE_INFO = {
-  jalan: { label: 'Jalan', icon: '🛣️' },
-  lampu: { label: 'Lampu Penerangan Jalan', icon: '💡' },
-  drainase: { label: 'Drainase', icon: '🚰' },
+  jalan: { label: 'Jalan' },
+  lampu: { label: 'Lampu Penerangan Jalan' },
+  drainase: { label: 'Drainase' },
 };
 
 const VALID_SCOPES = ['jalan', 'lampu', 'drainase'];
@@ -63,8 +56,7 @@ export default function CreateReportPage() {
     if (!scopeParam || !VALID_SCOPES.includes(scopeParam)) {
       navigate('/user/report-type', { replace: true });
     }
-    // eslint-disable-next-line
-  }, [scopeParam]);
+  }, [scopeParam, navigate]);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -78,12 +70,11 @@ export default function CreateReportPage() {
 
   useEffect(() => {
     if (scopeInfo) handleGetLocation();
-    // eslint-disable-next-line
   }, [scopeInfo]);
 
   function handleGetLocation() {
     if (!navigator.geolocation) {
-      setGpsStatus('Browser tidak mendukung GPS');
+      setGpsStatus('Browser tidak mendukung GPS.');
       return;
     }
     setGpsLoading(true);
@@ -92,14 +83,12 @@ export default function CreateReportPage() {
       (pos) => {
         const { latitude, longitude } = pos.coords;
         setPosition([latitude, longitude]);
-        setGpsStatus(
-          `Lokasi ditemukan (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`
-        );
+        setGpsStatus(`Lokasi ditemukan (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`);
         setGpsLoading(false);
       },
       (err) => {
         console.error(err);
-        setGpsStatus('Gagal ambil lokasi. Klik peta untuk pilih manual.');
+        setGpsStatus('Gagal mengambil lokasi. Silakan klik peta untuk memilih manual.');
         setGpsLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -112,9 +101,7 @@ export default function CreateReportPage() {
 
     const remaining = MAX_PHOTOS - photos.length;
     if (files.length > remaining) {
-      setError(
-        `Maksimal ${MAX_PHOTOS} foto. Anda hanya bisa menambah ${remaining} lagi.`
-      );
+      setError(`Maksimal ${MAX_PHOTOS} foto. Anda hanya bisa menambah ${remaining} foto lagi.`);
       e.target.value = '';
       return;
     }
@@ -128,7 +115,7 @@ export default function CreateReportPage() {
         return;
       }
       if (file.size > MAX_FILE_SIZE) {
-        setError(`File "${file.name}" melebihi 5MB.`);
+        setError(`File "${file.name}" melebihi batas 5MB.`);
         e.target.value = '';
         return;
       }
@@ -188,7 +175,7 @@ export default function CreateReportPage() {
         });
       }
 
-      alert('Laporan berhasil dikirim!');
+      alert('Laporan berhasil dikirim.');
       navigate('/user/my-reports');
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal mengirim laporan.');
@@ -203,303 +190,310 @@ export default function CreateReportPage() {
   const canAddMore = remaining > 0;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <Link
-          to="/user/report-type"
-          style={styles.backLink}
-          onMouseEnter={(e) => (e.target.style.color = '#1a5490')}
-          onMouseLeave={(e) => (e.target.style.color = '#0b3d6b')}
+    <div style={styles.page}>
+      <div style={styles.container}>
+        <Link 
+          to="/user/report-type" 
+          style={styles.backBtn}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e5e7eb')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
-          ← Ganti Jenis Infrastruktur
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Ganti Jenis Infrastruktur
         </Link>
 
-        <h1 style={styles.title}>Buat Laporan Baru</h1>
-        <p style={styles.subtitle}>Lengkapi detail laporan Anda</p>
-
-        <div style={styles.stepIndicator}>
-          <div style={styles.stepDotDone} />
-          <div style={styles.stepDotActive} />
-          <span style={styles.stepLabel}>Tahap 2 dari 2</span>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Buat Laporan Baru</h1>
+          <p style={styles.subtitle}>Berikan informasi detail mengenai masalah infrastruktur</p>
+          
+          <div style={styles.stepIndicator}>
+            <div style={styles.stepDotDone} />
+            <div style={styles.stepLine} />
+            <div style={styles.stepDotActive} />
+            <span style={styles.stepLabel}>Langkah 2 dari 2</span>
+          </div>
         </div>
+
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <div style={styles.selectedTypeBox}>
+            <span style={styles.selectedTypeLabel}>Kategori Terpilih:</span>
+            <span style={styles.selectedTypeValue}>{scopeInfo.label}</span>
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Judul Laporan</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Contoh: Lubang parah di Jalan Sudirman"
+              style={styles.input}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#0b3d6b';
+                e.target.style.boxShadow = '0 0 0 3px rgba(11, 61, 107, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#d1d5db';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Deskripsi</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Berikan penjelasan detail mengenai kondisi kerusakan..."
+              rows={4}
+              style={styles.textarea}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#0b3d6b';
+                e.target.style.boxShadow = '0 0 0 3px rgba(11, 61, 107, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#d1d5db';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>
+              Bukti Foto <span style={styles.helperText}>(Maks 3 foto, pastikan pencahayaan jelas)</span>
+            </label>
+
+            {previews.length > 0 && (
+              <div style={styles.photoGrid}>
+                {previews.map((preview, index) => (
+                  <div key={index} style={styles.photoItem}>
+                    <img src={preview} alt={`Preview ${index + 1}`} style={styles.photoImg} />
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePhoto(index)}
+                      style={styles.removePhotoBtn}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {canAddMore ? (
+              <div style={styles.uploadBox}>
+                <input
+                  id="photo-input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoChange}
+                  style={styles.fileInput}
+                />
+                <label htmlFor="photo-input" style={styles.uploadLabel}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '8px' }}>
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <p style={styles.uploadText}>Klik untuk memilih foto ({remaining} tersisa)</p>
+                  <p style={styles.uploadHint}>JPEG, PNG, WEBP maksimal 5MB</p>
+                </label>
+              </div>
+            ) : (
+              <div style={styles.photoLimitBox}>
+                Batas maksimal 3 foto tercapai. Hapus foto untuk menggantinya.
+              </div>
+            )}
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Lokasi</label>
+            <div style={styles.gpsRow}>
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={gpsLoading}
+                style={styles.gpsButton}
+              >
+                {gpsLoading ? 'Mengambil...' : 'Gunakan Lokasi Saat Ini'}
+              </button>
+              <span style={styles.gpsStatus}>{gpsStatus}</span>
+            </div>
+            <div style={styles.mapWrapper}>
+              <MapContainer center={position} zoom={DEFAULT_ZOOM} style={styles.map}>
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <LocationMarker position={position} setPosition={setPosition} />
+                <MapController position={position} />
+              </MapContainer>
+            </div>
+            <p style={styles.coordInfo}>
+              Koordinat: {position[0].toFixed(5)}, {position[1].toFixed(5)}
+              <br />
+              <span style={styles.helperText}>Klik peta untuk menyesuaikan lokasi secara manual.</span>
+            </p>
+          </div>
+
+          {error && <div style={styles.error}>{error}</div>}
+
+          <button type="submit" disabled={loading} style={styles.submitBtn}>
+            {loading ? 'Mengirim...' : 'Kirim Laporan'}
+          </button>
+        </form>
       </div>
-
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <div style={styles.selectedTypeCard}>
-          <div style={styles.selectedTypeIcon}>{scopeInfo.icon}</div>
-          <div style={styles.selectedTypeContent}>
-            <p style={styles.selectedTypeLabel}>Jenis Infrastruktur</p>
-            <p style={styles.selectedTypeValue}>{scopeInfo.label}</p>
-          </div>
-        </div>
-
-        <div style={styles.field}>
-          <label style={styles.label}>Judul Laporan</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Contoh: Jalan berlubang parah"
-            style={styles.input}
-            onFocus={(e) => (e.target.style.borderColor = '#0b3d6b')}
-            onBlur={(e) => (e.target.style.borderColor = '#ccc')}
-          />
-        </div>
-
-        <div style={styles.field}>
-          <label style={styles.label}>Deskripsi</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Jelaskan kondisi kerusakan secara detail..."
-            rows={4}
-            style={styles.textarea}
-            onFocus={(e) => (e.target.style.borderColor = '#0b3d6b')}
-            onBlur={(e) => (e.target.style.borderColor = '#ccc')}
-          />
-        </div>
-
-        {/* FOTO */}
-        <div style={styles.field}>
-          <label style={styles.label}>
-            Foto Bukti{' '}
-            <span style={styles.counter}>
-              ({photos.length}/{MAX_PHOTOS})
-            </span>
-          </label>
-
-          <div style={styles.photoNote}>
-            📸 Maksimal {MAX_PHOTOS} foto. Pastikan pencahayaan jelas agar foto terbaca.
-          </div>
-
-          {previews.length > 0 && (
-            <div style={styles.photoGrid}>
-              {previews.map((preview, index) => (
-                <div key={index} style={styles.photoItem}>
-                  <img
-                    src={preview}
-                    alt={`Preview ${index + 1}`}
-                    style={styles.photoImg}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePhoto(index)}
-                    style={styles.removePhotoBtn}
-                    onMouseEnter={(e) => (e.target.style.background = '#c0392b')}
-                    onMouseLeave={(e) => (e.target.style.background = '#e74c3c')}
-                  >
-                    ✗
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {canAddMore ? (
-            <div style={styles.uploadBox}>
-              <input
-                id="photo-input"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoChange}
-                style={styles.fileInput}
-              />
-              <label htmlFor="photo-input" style={styles.uploadLabel}>
-                <div style={styles.uploadIcon}>📷</div>
-                <p style={styles.uploadText}>
-                  Klik untuk pilih foto ({remaining} slot tersisa)
-                </p>
-                <p style={styles.uploadHint}>
-                  Format: JPG, PNG, WEBP · Maks 5MB per foto
-                </p>
-              </label>
-            </div>
-          ) : (
-            <div style={styles.photoLimitBox}>
-              ✅ Batas maksimal {MAX_PHOTOS} foto tercapai. Hapus salah satu foto untuk mengganti.
-            </div>
-          )}
-        </div>
-
-        {/* Lokasi */}
-        <div style={styles.field}>
-          <label style={styles.label}>Lokasi</label>
-
-          <div style={styles.gpsRow}>
-            <button
-              type="button"
-              onClick={handleGetLocation}
-              disabled={gpsLoading}
-              style={styles.gpsButton}
-              onMouseEnter={(e) => {
-                if (!gpsLoading) {
-                  e.target.style.background = '#1a5490';
-                  e.target.style.transform = 'translateY(-2px)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = '#0b3d6b';
-                e.target.style.transform = 'translateY(0)';
-              }}
-            >
-              {gpsLoading ? 'Mengambil...' : '📍 Lokasi Saya'}
-            </button>
-            <span style={styles.gpsStatus}>{gpsStatus}</span>
-          </div>
-
-          <div style={styles.mapWrapper}>
-            <MapContainer center={position} zoom={DEFAULT_ZOOM} style={styles.map}>
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <LocationMarker position={position} setPosition={setPosition} />
-              <MapController position={position} />
-            </MapContainer>
-          </div>
-
-          <p style={styles.coordInfo}>
-            📌 Koordinat: {position[0].toFixed(5)}, {position[1].toFixed(5)}
-            <br />
-            <span style={styles.coordHint}>
-              Klik peta untuk ubah lokasi, atau klik tombol "Lokasi Saya".
-            </span>
-          </p>
-        </div>
-
-        {error && <div style={styles.error}>{error}</div>}
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={styles.submitBtn}
-          onMouseEnter={(e) => {
-            if (!loading) {
-              e.target.style.background = '#1a5490';
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 6px 20px rgba(11, 61, 107, 0.4)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = '#0b3d6b';
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = 'none';
-          }}
-        >
-          {loading ? 'Mengirim...' : 'Kirim Laporan'}
-        </button>
-      </form>
     </div>
   );
 }
 
 const styles = {
+  page: {
+    minHeight: '100vh',
+    backgroundColor: '#f5f7fa',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    padding: '40px 20px',
+  },
   container: {
     maxWidth: '800px',
     margin: '0 auto',
-    padding: '40px 20px',
-    fontFamily: 'system-ui, sans-serif',
   },
-  header: { marginBottom: '24px' },
-  backLink: {
-    display: 'inline-block',
-    marginBottom: '12px',
-    color: '#0b3d6b',
+  backBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '6px 12px',
+    backgroundColor: 'transparent',
+    color: '#4b5563',
+    borderRadius: '6px',
     textDecoration: 'none',
     fontSize: '14px',
-    fontWeight: 600,
-    transition: 'color 0.2s ease',
+    fontWeight: '500',
+    marginBottom: '24px',
+    transition: 'background-color 0.2s',
   },
-  title: { margin: 0, color: '#0b3d6b', fontSize: '24px' },
-  subtitle: { margin: '4px 0 16px', color: '#666', fontSize: '14px' },
-  stepIndicator: { display: 'flex', alignItems: 'center', gap: '6px' },
-  stepDotDone: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    background: '#0b3d6b',
+  header: {
+    marginBottom: '24px',
   },
-  stepDotActive: {
-    width: '24px',
-    height: '8px',
-    borderRadius: '4px',
-    background: '#0b3d6b',
+  title: {
+    margin: '0 0 4px',
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#111827',
   },
-  stepLabel: {
-    marginLeft: '10px',
-    fontSize: '12px',
-    color: '#888',
-    fontStyle: 'italic',
+  subtitle: {
+    margin: '0 0 20px',
+    fontSize: '14px',
+    color: '#6b7280',
   },
-  form: { display: 'flex', flexDirection: 'column', gap: '20px' },
-  selectedTypeCard: {
+  stepIndicator: {
     display: 'flex',
     alignItems: 'center',
-    gap: '14px',
-    padding: '16px 20px',
-    background: '#f0f7ff',
-    border: '1px solid #cce0f5',
-    borderRadius: '8px',
+    gap: '8px',
   },
-  selectedTypeIcon: { fontSize: '32px' },
-  selectedTypeContent: { display: 'flex', flexDirection: 'column', gap: '2px' },
+  stepDotDone: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    backgroundColor: '#0b3d6b',
+  },
+  stepLine: {
+    width: '24px',
+    height: '2px',
+    backgroundColor: '#e5e5e5',
+  },
+  stepDotActive: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    backgroundColor: '#0b3d6b',
+  },
+  stepLabel: {
+    marginLeft: '8px',
+    fontSize: '12px',
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    backgroundColor: '#ffffff',
+    padding: '32px',
+    borderRadius: '8px',
+    border: '1px solid #e5e5e5',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+  },
+  selectedTypeBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 16px',
+    backgroundColor: '#f0f7ff',
+    borderRadius: '6px',
+    border: '1px solid #cce0f5',
+  },
   selectedTypeLabel: {
-    margin: 0,
-    fontSize: '11px',
-    color: '#666',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    fontWeight: 600,
+    fontSize: '14px',
+    color: '#4b5563',
+    fontWeight: '500',
   },
   selectedTypeValue: {
-    margin: 0,
-    fontSize: '15px',
+    fontSize: '14px',
     color: '#0b3d6b',
-    fontWeight: 700,
+    fontWeight: '600',
   },
-  field: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  label: { fontSize: '14px', fontWeight: 600, color: '#333' },
-  counter: { color: '#0b3d6b', fontWeight: 700 },
-  photoNote: {
-    padding: '8px 12px',
-    background: '#fffbea',
-    border: '1px solid #ffeaa7',
-    borderRadius: '6px',
+  field: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  label: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+  },
+  helperText: {
     fontSize: '12px',
-    color: '#856404',
-    lineHeight: 1.5,
+    color: '#6b7280',
+    fontWeight: '400',
   },
   input: {
     padding: '10px 12px',
     fontSize: '14px',
-    border: '1px solid #ccc',
+    border: '1px solid #d1d5db',
     borderRadius: '6px',
     outline: 'none',
+    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
     fontFamily: 'inherit',
-    transition: 'border-color 0.2s ease',
   },
   textarea: {
     padding: '10px 12px',
     fontSize: '14px',
-    border: '1px solid #ccc',
+    border: '1px solid #d1d5db',
     borderRadius: '6px',
     outline: 'none',
     fontFamily: 'inherit',
     resize: 'vertical',
-    transition: 'border-color 0.2s ease',
+    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
   },
   photoGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-    gap: '8px',
-    marginTop: '10px',
+    gap: '10px',
+    marginBottom: '10px',
   },
   photoItem: {
     position: 'relative',
-    borderRadius: '8px',
+    borderRadius: '6px',
     overflow: 'hidden',
-    aspectRatio: '1 / 1',
+    aspectRatio: '1',
     border: '1px solid #e5e5e5',
   },
   photoImg: {
@@ -514,19 +508,19 @@ const styles = {
     right: '6px',
     width: '24px',
     height: '24px',
-    background: '#e74c3c',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     color: '#fff',
     border: 'none',
-    borderRadius: '50%',
+    borderRadius: '4px',
     cursor: 'pointer',
-    fontSize: '12px',
-    fontWeight: 700,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'background 0.2s ease',
+    transition: 'background-color 0.2s',
   },
-  uploadBox: { position: 'relative', marginTop: '10px' },
+  uploadBox: {
+    position: 'relative',
+  },
   fileInput: {
     position: 'absolute',
     width: '1px',
@@ -535,33 +529,36 @@ const styles = {
     overflow: 'hidden',
   },
   uploadLabel: {
-    display: 'block',
-    padding: '24px 20px',
-    background: '#fafbfc',
-    border: '2px dashed #ccc',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+    backgroundColor: '#f8fafc',
+    border: '2px dashed #d1d5db',
     borderRadius: '8px',
-    textAlign: 'center',
     cursor: 'pointer',
-    transition: 'border-color 0.2s ease, background 0.2s ease',
+    transition: 'border-color 0.2s ease, background-color 0.2s ease',
   },
-  uploadIcon: { fontSize: '28px', marginBottom: '6px' },
   uploadText: {
     margin: '0 0 4px',
-    color: '#0b3d6b',
-    fontSize: '13px',
-    fontWeight: 600,
+    fontSize: '14px',
+    color: '#374151',
+    fontWeight: '500',
   },
-  uploadHint: { margin: 0, color: '#888', fontSize: '11px' },
-  photoLimitBox: {
-    marginTop: '10px',
-    padding: '12px 16px',
-    background: '#eafaf1',
-    border: '1px solid #b8e6c9',
-    borderRadius: '6px',
+  uploadHint: {
+    margin: 0,
     fontSize: '12px',
-    color: '#27ae60',
-    fontWeight: 600,
-    textAlign: 'center',
+    color: '#6b7280',
+  },
+  photoLimitBox: {
+    padding: '12px 16px',
+    backgroundColor: '#dcfce7',
+    color: '#166534',
+    border: '1px solid #bbf7d0',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '500',
   },
   gpsRow: {
     display: 'flex',
@@ -572,44 +569,54 @@ const styles = {
   },
   gpsButton: {
     padding: '8px 16px',
-    background: '#0b3d6b',
+    backgroundColor: '#0b3d6b',
     color: '#fff',
     border: 'none',
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '13px',
-    fontWeight: 600,
-    transition: 'background 0.2s ease, transform 0.2s ease',
+    fontWeight: '500',
+    transition: 'background-color 0.2s',
   },
-  gpsStatus: { fontSize: '12px', color: '#666', fontStyle: 'italic' },
+  gpsStatus: {
+    fontSize: '13px',
+    color: '#6b7280',
+  },
   mapWrapper: {
-    height: '400px',
+    height: '300px',
     borderRadius: '8px',
     overflow: 'hidden',
-    border: '1px solid #ccc',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    border: '1px solid #e5e5e5',
+    zIndex: 0,
   },
-  map: { height: '100%', width: '100%' },
-  coordInfo: { margin: '8px 0 0', fontSize: '13px', color: '#333' },
-  coordHint: { fontSize: '11px', color: '#888', fontStyle: 'italic' },
+  map: {
+    height: '100%',
+    width: '100%',
+  },
+  coordInfo: {
+    margin: '8px 0 0',
+    fontSize: '13px',
+    color: '#4b5563',
+    fontFamily: 'monospace',
+  },
   error: {
     padding: '12px',
-    background: '#fff5f5',
-    color: '#c0392b',
-    border: '1px solid #f5c6cb',
+    backgroundColor: '#fef2f2',
+    color: '#b91c1c',
+    border: '1px solid #fecaca',
     borderRadius: '6px',
     fontSize: '13px',
   },
   submitBtn: {
-    padding: '14px',
-    fontSize: '16px',
-    fontWeight: 600,
-    background: '#0b3d6b',
+    padding: '12px',
+    fontSize: '14px',
+    fontWeight: '500',
+    backgroundColor: '#0b3d6b',
     color: '#fff',
     border: 'none',
     borderRadius: '6px',
     cursor: 'pointer',
+    transition: 'background-color 0.2s',
     marginTop: '8px',
-    transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease',
   },
 };

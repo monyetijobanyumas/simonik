@@ -18,19 +18,15 @@ export default function LoginPage() {
 
   function validateForm() {
     if (!email.trim()) {
-      setError('Email tidak boleh kosong.');
+      setError('Email wajib diisi.');
       return false;
     }
     if (!email.includes('@')) {
-      setError('Format email tidak valid. Harus mengandung "@".');
+      setError('Format email tidak valid.');
       return false;
     }
     if (!password.trim()) {
-      setError('Password tidak boleh kosong.');
-      return false;
-    }
-    if (password.length < 6) {
-      setError('Password minimal 6 karakter.');
+      setError('Password wajib diisi.');
       return false;
     }
     return true;
@@ -39,9 +35,7 @@ export default function LoginPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-
     if (!validateForm()) return;
-
     setLoading(true);
 
     try {
@@ -52,9 +46,7 @@ export default function LoginPage() {
         navigate('/user/dashboard');
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message || 'Login gagal. Silakan coba lagi.'
-      );
+      setError(err.response?.data?.message || 'Gagal masuk. Periksa kembali email dan password Anda.');
     } finally {
       setLoading(false);
     }
@@ -62,34 +54,31 @@ export default function LoginPage() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.card} className="animate-card">
-        <h1 style={styles.title} className="animate-title">
-          SIMONIK
-        </h1>
+      <div style={styles.card}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>SIMONIK</h1>
+          <p style={styles.subtitle}>
+            Sistem Informasi Monitoring dan Pengaduan<br/>Infrastruktur Kawasan
+          </p>
+        </div>
 
-        <p style={styles.subtitle} className="animate-subtitle">
-          Sistem Informasi Monitoring
-          <br />
-          dan Pengaduan Infrastruktur Kawasan
-        </p>
-
-        <form
-          onSubmit={handleSubmit}
-          style={styles.form}
-          className="animate-form"
-          noValidate
-        >
+        <form onSubmit={handleSubmit} style={styles.form} noValidate>
           <div style={styles.field}>
             <label style={styles.label}>Email</label>
             <input
               type="text"
-              inputMode="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="nama@email.com"
+              placeholder="name@simonik.test"
               style={styles.input}
-              onFocus={(e) => (e.target.style.borderColor = '#0b3d6b')}
-              onBlur={(e) => (e.target.style.borderColor = '#ccc')}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#0b3d6b';
+                e.target.style.boxShadow = '0 0 0 3px rgba(11, 61, 107, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#d1d5db';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
 
@@ -101,45 +90,34 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Masukkan password"
               style={styles.input}
-              onFocus={(e) => (e.target.style.borderColor = '#0b3d6b')}
-              onBlur={(e) => (e.target.style.borderColor = '#ccc')}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#0b3d6b';
+                e.target.style.boxShadow = '0 0 0 3px rgba(11, 61, 107, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#d1d5db';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
 
-          {error && (
-            <div style={styles.error} className="animate-error">
-              <span style={styles.errorIcon}>!</span>
-              {error}
-            </div>
-          )}
+          {error && <div style={styles.error}>{error}</div>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={styles.button}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.target.style.background = '#1a5490';
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 6px 20px rgba(11, 61, 107, 0.4)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = '#0b3d6b';
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = 'none';
-            }}
-          >
-            {loading ? 'Memuat...' : 'Login'}
+          <button type="submit" disabled={loading} style={styles.button}>
+            {loading ? 'Memproses...' : 'Masuk'}
           </button>
         </form>
 
-        <div style={styles.hint} className="animate-hint">
-          <strong>Akun Demo:</strong>
-          <br />User: user@simonik.test / rahasia123
-          <br />Petugas Jalan: jalan@simonik.test / rahasia123
-          <br />Petugas Lampu: lampu@simonik.test / rahasia123
-          <br />Petugas Drainase: drainase@simonik.test / rahasia123
+        <div style={styles.divider}></div>
+
+        <div style={styles.demoBox}>
+          <p style={styles.demoTitle}>Akun Demo</p>
+          <div style={styles.demoList}>
+            <div style={styles.demoItem}><span style={styles.demoRole}>User</span> user@simonik.test / rahasia123</div>
+            <div style={styles.demoItem}><span style={styles.demoRole}>Petugas</span> jalan@simonik.test / rahasia123</div>
+            <div style={styles.demoItem}><span style={styles.demoRole}>Petugas</span> lampu@simonik.test / rahasia123</div>
+            <div style={styles.demoItem}><span style={styles.demoRole}>Petugas</span> drainase@simonik.test / rahasia123</div>
+          </div>
         </div>
       </div>
     </div>
@@ -152,106 +130,121 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%)',
-    backgroundSize: '200% 200%',
-    animation: 'gradientShift 15s ease infinite',
+    backgroundColor: '#f5f7fa',
     padding: '20px',
-    fontFamily: 'system-ui, sans-serif',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   card: {
-    background: '#fff',
-    padding: '40px',
+    backgroundColor: '#ffffff',
+    border: '1px solid #e5e5e5',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
     borderRadius: '12px',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
     width: '100%',
-    maxWidth: '440px',
+    maxWidth: '420px',
+    padding: '40px 36px', // Padding dilebarkan agar lebih lega
+  },
+  header: {
+    marginBottom: '32px',
+    textAlign: 'center',
   },
   title: {
-    margin: 0,
-    textAlign: 'center',
-    color: '#0b3d6b',
+    margin: '0 0 12px',
+    color: '#111827',
     fontSize: '28px',
-    letterSpacing: '2px',
-    fontWeight: 700,
+    fontWeight: '700',
+    letterSpacing: '-0.5px',
   },
   subtitle: {
-    textAlign: 'center',
-    color: '#666',
-    marginTop: '8px',
-    marginBottom: '32px',
-    fontSize: '13px',
-    lineHeight: 1.5,
+    margin: 0,
+    color: '#6b7280',
+    fontSize: '13.5px',
+    fontWeight: '500',
+    lineHeight: '1.6', // Spasi baris subtitle lebih nyaman dibaca
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
+    gap: '20px', // Jarak antar field lebih longgar
   },
   field: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    gap: '8px',
   },
   label: {
     fontSize: '14px',
-    fontWeight: 600,
-    color: '#333',
+    fontWeight: '500',
+    color: '#374151',
   },
   input: {
-    padding: '12px',
+    padding: '12px 14px', // Input dibuat lebih tinggi (padding vertikal ditambah)
     fontSize: '14px',
-    border: '1px solid #ccc',
-    borderRadius: '6px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px', // Radius sedikit lebih besar
     outline: 'none',
+    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
     fontFamily: 'inherit',
-    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
   },
   button: {
+    marginTop: '4px',
     padding: '12px',
-    fontSize: '16px',
-    fontWeight: 600,
-    background: '#0b3d6b',
-    color: '#fff',
+    backgroundColor: '#0b3d6b',
+    color: '#ffffff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '8px',
+    fontSize: '15px',
+    fontWeight: '600',
     cursor: 'pointer',
-    marginTop: '8px',
-    letterSpacing: '0.5px',
-    transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease',
+    transition: 'background-color 0.2s ease',
   },
   error: {
+    padding: '12px',
+    backgroundColor: '#fef2f2',
+    color: '#b91c1c',
+    border: '1px solid #fecaca',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '500',
+  },
+  divider: {
+    height: '1px',
+    backgroundColor: '#e5e5e5',
+    margin: '28px 0', // Jarak pembatas dilebarkan
+  },
+  demoBox: {
+    backgroundColor: '#f8fafc',
+    padding: '20px',
+    borderRadius: '8px',
+    border: '1px solid #e5e5e5',
+  },
+  demoTitle: {
+    margin: '0 0 14px',
+    fontSize: '11px',
+    fontWeight: '700',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  demoList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px', // Jarak antar akun demo lebih longgar
+    fontSize: '12.5px',
+    color: '#64748b',
+  },
+  demoItem: {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    padding: '12px 14px',
-    background: '#fff5f5',
-    color: '#c0392b',
-    border: '1px solid #f5c6cb',
-    borderRadius: '6px',
-    fontSize: '13px',
-    lineHeight: 1.4,
   },
-  errorIcon: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '20px',
-    height: '20px',
-    minWidth: '20px',
-    background: '#c0392b',
-    color: '#fff',
-    borderRadius: '50%',
-    fontSize: '13px',
-    fontWeight: 700,
-  },
-  hint: {
-    marginTop: '24px',
-    padding: '12px',
-    background: '#f0f7ff',
-    borderRadius: '6px',
-    fontSize: '11px',
-    color: '#333',
-    lineHeight: 1.7,
-    borderLeft: '3px solid #0b3d6b',
-  },
+  demoRole: {
+    backgroundColor: '#e2e8f0',
+    color: '#334155',
+    padding: '3px 8px',
+    borderRadius: '4px',
+    fontSize: '10px',
+    fontWeight: '700',
+    minWidth: '55px',
+    textAlign: 'center',
+  }
 };

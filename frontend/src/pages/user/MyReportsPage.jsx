@@ -1,7 +1,6 @@
 // ============================================================
 // SIMONIK - My Reports Page
 // File: src/pages/user/MyReportsPage.jsx
-// Deskripsi: List laporan milik user
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -11,7 +10,6 @@ import ReportCard from '../../components/ReportCard';
 
 export default function MyReportsPage() {
   const navigate = useNavigate();
-
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -33,179 +31,196 @@ export default function MyReportsPage() {
     }
   }
 
-  function handleReportClick(reportId) {
-    navigate(`/user/report/${reportId}`);
-  }
-
   return (
-    <div style={styles.container}>
-      {/* Back link */}
-      <Link
-        to="/user/dashboard"
-        style={styles.backLink}
-        onMouseEnter={(e) => (e.target.style.color = '#1a5490')}
-        onMouseLeave={(e) => (e.target.style.color = '#0b3d6b')}
-      >
-        ← Kembali ke Dashboard
-      </Link>
-
-      {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.title}>Laporan Saya</h1>
-          <p style={styles.subtitle}>
-            Daftar laporan yang pernah Anda kirim
-          </p>
-        </div>
-        <button
-          onClick={fetchReports}
-          style={styles.refreshBtn}
-          onMouseEnter={(e) => (e.target.style.color = '#1a5490')}
-          onMouseLeave={(e) => (e.target.style.color = '#0b3d6b')}
+    <div style={styles.page}>
+      <div style={styles.container}>
+        <Link 
+          to="/user/dashboard" 
+          style={styles.backBtn}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e5e7eb')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
-          ↻ Refresh
-        </button>
-      </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Kembali ke Dashboard
+        </Link>
 
-      {/* Loading */}
-      {loading && (
-        <div style={styles.stateBox}>
-          <p style={styles.stateText}>Memuat laporan...</p>
-        </div>
-      )}
-
-      {/* Error */}
-      {error && !loading && (
-        <div style={styles.errorBox}>
-          <p style={styles.errorText}>⚠️ {error}</p>
-          <button onClick={fetchReports} style={styles.retryBtn}>
-            Coba Lagi
+        <div style={styles.header}>
+          <div>
+            <h1 style={styles.title}>Laporan Saya</h1>
+            <p style={styles.subtitle}>Kelola dan pantau laporan yang telah Anda kirim</p>
+          </div>
+          <button onClick={fetchReports} style={styles.refreshBtn}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            Refresh
           </button>
         </div>
-      )}
 
-      {/* Empty state */}
-      {!loading && !error && reports.length === 0 && (
-        <div style={styles.emptyBox}>
-          <div style={styles.emptyIcon}>📭</div>
-          <p style={styles.emptyTitle}>Belum ada laporan</p>
-          <p style={styles.emptyText}>
-            Klik tombol "Buat Laporan Baru" di dashboard untuk mulai melapor.
-          </p>
-        </div>
-      )}
+        {loading && (
+          <div style={styles.stateBox}>
+            <p>Memuat laporan...</p>
+          </div>
+        )}
 
-      {/* List */}
-      {!loading && !error && reports.length > 0 && (
-        <div>
-          {reports.map((report) => (
-            <ReportCard
-              key={report.id}
-              report={report}
-              onClick={() => handleReportClick(report.id)}
-            />
-          ))}
-        </div>
-      )}
+        {error && !loading && (
+          <div style={styles.errorBox}>
+            <p>{error}</p>
+            <button onClick={fetchReports} style={styles.retryBtn}>Coba Lagi</button>
+          </div>
+        )}
+
+        {!loading && !error && reports.length === 0 && (
+          <div style={styles.emptyBox}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '16px' }}>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            <h3 style={styles.emptyTitle}>Belum Ada Laporan</h3>
+            <p style={styles.emptyText}>Anda belum pernah mengirimkan laporan.</p>
+            <button onClick={() => navigate('/user/report-type')} style={styles.primaryBtn}>
+              Buat Laporan Baru
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && reports.length > 0 && (
+          <div style={styles.list}>
+            {reports.map((report) => (
+              <ReportCard
+                key={report.id}
+                report={report}
+                onClick={() => navigate(`/user/report/${report.id}`)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 const styles = {
+  page: {
+    minHeight: '100vh',
+    backgroundColor: '#f5f7fa',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    padding: '40px 20px',
+  },
   container: {
     maxWidth: '900px',
     margin: '0 auto',
-    padding: '40px 20px',
-    fontFamily: 'system-ui, sans-serif',
   },
-  backLink: {
-    display: 'inline-block',
-    marginBottom: '20px',
-    color: '#0b3d6b',
+  backBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '6px 12px',
+    backgroundColor: 'transparent',
+    color: '#4b5563',
+    borderRadius: '6px',
     textDecoration: 'none',
     fontSize: '14px',
-    fontWeight: 600,
-    transition: 'color 0.2s ease',
+    fontWeight: '500',
+    marginBottom: '24px',
+    transition: 'background-color 0.2s',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: '24px',
-    gap: '16px',
   },
   title: {
-    margin: 0,
-    color: '#0b3d6b',
+    margin: '0 0 4px',
     fontSize: '24px',
+    fontWeight: '600',
+    color: '#111827',
   },
   subtitle: {
-    margin: '4px 0 0',
-    color: '#666',
+    margin: 0,
     fontSize: '14px',
+    color: '#6b7280',
   },
   refreshBtn: {
-    padding: '8px 14px',
-    background: 'transparent',
-    color: '#0b3d6b',
-    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    padding: '8px 16px',
+    backgroundColor: '#ffffff',
+    color: '#4b5563',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
     cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: 600,
-    transition: 'color 0.2s ease',
-    flexShrink: 0,
+    boxShadow: '0 1px 3px 0 rgba(0,0,0,0.05)',
   },
   stateBox: {
-    padding: '40px 20px',
+    padding: '60px 20px',
     textAlign: 'center',
-    color: '#888',
-  },
-  stateText: {
-    fontSize: '14px',
-    fontStyle: 'italic',
+    color: '#6b7280',
+    backgroundColor: '#ffffff',
+    borderRadius: '8px',
+    border: '1px solid #e5e5e5',
   },
   errorBox: {
-    padding: '16px 20px',
-    background: '#fff5f5',
-    border: '1px solid #f5c6cb',
+    padding: '24px',
+    backgroundColor: '#fef2f2',
+    border: '1px solid #fecaca',
     borderRadius: '8px',
     textAlign: 'center',
-  },
-  errorText: {
-    margin: '0 0 12px',
-    color: '#c0392b',
-    fontSize: '14px',
+    color: '#b91c1c',
   },
   retryBtn: {
+    marginTop: '12px',
     padding: '8px 16px',
-    background: '#c0392b',
-    color: '#fff',
+    backgroundColor: '#b91c1c',
+    color: '#ffffff',
     border: 'none',
     borderRadius: '6px',
     cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: 600,
+    fontWeight: '500',
   },
   emptyBox: {
-    padding: '40px 20px',
+    padding: '60px 20px',
     textAlign: 'center',
-    background: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: '8px',
-    border: '1px dashed #ccc',
-  },
-  emptyIcon: {
-    fontSize: '40px',
-    marginBottom: '12px',
+    border: '1px dashed #d1d5db',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
   },
   emptyTitle: {
-    margin: '0 0 4px',
-    color: '#333',
+    margin: '0 0 8px',
     fontSize: '16px',
-    fontWeight: 600,
+    fontWeight: '600',
+    color: '#111827',
   },
   emptyText: {
-    margin: 0,
-    color: '#888',
-    fontSize: '13px',
+    margin: '0 0 24px',
+    fontSize: '14px',
+    color: '#6b7280',
   },
+  primaryBtn: {
+    padding: '10px 20px',
+    backgroundColor: '#0b3d6b',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+  },
+  list: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  }
 };
