@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import logoSimonik from '../../assets/logo-simonik.png';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -55,8 +56,10 @@ export default function LoginPage() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
+        
+        {/* Header dengan Logo */}
         <div style={styles.header}>
-          <h1 style={styles.title}>SIMONIK</h1>
+          <img src={logoSimonik} alt="SIMONIK Logo" style={styles.logoImage} />
           <p style={styles.subtitle}>
             Sistem Informasi Monitoring dan Pengaduan<br/>Infrastruktur Kawasan
           </p>
@@ -141,30 +144,32 @@ const styles = {
     borderRadius: '12px',
     width: '100%',
     maxWidth: '420px',
-    padding: '40px 36px', // Padding dilebarkan agar lebih lega
+    padding: '40px 36px',
   },
   header: {
     marginBottom: '32px',
     textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
   },
-  title: {
-    margin: '0 0 12px',
-    color: '#111827',
-    fontSize: '28px',
-    fontWeight: '700',
-    letterSpacing: '-0.5px',
+  logoImage: {
+    height: '130px', // Ukuran diperbesar dari 80px
+    objectFit: 'contain',
+    marginBottom: '0px', // Jarak dihilangkan karena gambar AI biasanya sudah ada padding bawah
+    marginTop: '-10px', // Sedikit ditarik ke atas agar tidak terlalu jauh dari atas card
   },
   subtitle: {
     margin: 0,
     color: '#6b7280',
     fontSize: '13.5px',
     fontWeight: '500',
-    lineHeight: '1.6', // Spasi baris subtitle lebih nyaman dibaca
+    lineHeight: '1.6',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px', // Jarak antar field lebih longgar
+    gap: '20px',
   },
   field: {
     display: 'flex',
@@ -177,10 +182,10 @@ const styles = {
     color: '#374151',
   },
   input: {
-    padding: '12px 14px', // Input dibuat lebih tinggi (padding vertikal ditambah)
+    padding: '12px 14px',
     fontSize: '14px',
     border: '1px solid #d1d5db',
-    borderRadius: '8px', // Radius sedikit lebih besar
+    borderRadius: '8px',
     outline: 'none',
     transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
     fontFamily: 'inherit',
@@ -209,7 +214,7 @@ const styles = {
   divider: {
     height: '1px',
     backgroundColor: '#e5e5e5',
-    margin: '28px 0', // Jarak pembatas dilebarkan
+    margin: '28px 0',
   },
   demoBox: {
     backgroundColor: '#f8fafc',
@@ -228,7 +233,7 @@ const styles = {
   demoList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px', // Jarak antar akun demo lebih longgar
+    gap: '10px',
     fontSize: '12.5px',
     color: '#64748b',
   },
